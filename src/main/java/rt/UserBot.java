@@ -5,7 +5,6 @@ import it.tdlight.jni.TdApi;
 
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
@@ -33,42 +32,6 @@ public class UserBot implements AutoCloseable {
         this.client = clientBuilder.build(authenticationData);
     }
 
-    public void showFolders() {
-        for (int folderID : foldersInfo.keySet()) {
-            System.out.println(folderID + ": " + foldersInfo.get(folderID));
-        }
-    }
-
-    private void getFoldersChats() {
-        for (int folderID : foldersInfo.keySet()) {
-            client.send(new TdApi.GetChatFolder(folderID)).whenCompleteAsync((folder, error) -> {
-                if (error != null) {
-                    System.out.println(error.getMessage());
-                } else {
-                    chatsInFolders.put(folderID, folder.includedChatIds);
-                }
-            });
-        }
-    }
-
-    private void onUpdateSuperGroup(TdApi.UpdateSupergroup updateSupergroup) {
-        TdApi.Supergroup supergroup = updateSupergroup.supergroup;
-        if (supergroup.isChannel) {
-            supergroups.put(transferChatID(supergroup.id), supergroup);
-        }
-    }
-
-    private void onUpdateChat(TdApi.UpdateNewChat updateNewChat) {
-        TdApi.Chat chat = updateNewChat.chat;
-        chats.put(chat.id, chat);
-    }
-
-    private void onUpdateFolder(TdApi.UpdateChatFolders updateChatFolders) {
-        for (TdApi.ChatFolderInfo folder : updateChatFolders.chatFolders) {
-            foldersInfo.put(folder.id, folder.title);
-        }
-    }
-
     private void onUpdateAuthorizationState(TdApi.UpdateAuthorizationState update) {
         TdApi.AuthorizationState authorizationState = update.authorizationState;
         if (authorizationState instanceof TdApi.AuthorizationStateReady) {
@@ -80,10 +43,28 @@ public class UserBot implements AutoCloseable {
         } else if (authorizationState instanceof TdApi.AuthorizationStateClosing) {
             System.out.println("Закрытие соединения...");
         } else if (authorizationState instanceof TdApi.AuthorizationStateClosed) {
-            System.out.println("Соедиение закрыто");
+            System.out.println("Соединение закрыто");
         } else if (authorizationState instanceof TdApi.AuthorizationStateLoggingOut) {
             System.out.println("Вышел из аккаунта");
             isLoggedIn.set(false);
+        }
+    }
+
+    private void onUpdateChat(TdApi.UpdateNewChat updateNewChat) {
+        TdApi.Chat chat = updateNewChat.chat;
+        chats.put(chat.id, chat);
+    }
+
+    private void onUpdateSuperGroup(TdApi.UpdateSupergroup updateSupergroup) {
+        TdApi.Supergroup supergroup = updateSupergroup.supergroup;
+        if (supergroup.isChannel) {
+            supergroups.put(transferChatID(supergroup.id), supergroup);
+        }
+    }
+
+    private void onUpdateFolder(TdApi.UpdateChatFolders updateChatFolders) {
+        for (TdApi.ChatFolderInfo folder : updateChatFolders.chatFolders) {
+            foldersInfo.put(folder.id, folder.title);
         }
     }
 
@@ -109,32 +90,53 @@ public class UserBot implements AutoCloseable {
         executor.shutdown();
     }
 
-    public void loadChannelsHistory(String folderIDString) {
-        try {
-            int folderID = Integer.parseInt(folderIDString);
+    private void getFoldersChats() {
+        for (int folderID : foldersInfo.keySet()) {
+            client.send(new TdApi.GetChatFolder(folderID)).whenCompleteAsync((folder, error) -> {
+                if (error != null) {
+                    System.out.println(error.getMessage());
+                } else {
+                    chatsInFolders.put(folderID, folder.includedChatIds);
+                }
+            });
+        }
+    }
+
+    public void showFolders() {
+        for (int folderID : foldersInfo.keySet()) {
+            System.out.println(folderID + ": " + foldersInfo.get(folderID));
+        }
+    }
+
+    public void loadChannelsHistory(String folderIDString, String dateString) {
+        Integer folderID = ParseMaster.parseInteger(folderIDString);
+        Long dateUnix = ParseMaster.parseUnixTime(dateString);
+
+        if (folderID == null) {
+            System.out.println("Начинаю загрузку со всех каналов");
+            for (Long channelID : supergroups.keySet()) {
+                loadChatHistory(channelID, dateUnix);
+            }
+            System.out.println("Сообщения загружены");
+        } else {
             if (chatsInFolders.containsKey(folderID)) {
                 System.out.println("Начинаю загрузку сообщений из папки " + foldersInfo.get(folderID));
                 for (Long chatID : chatsInFolders.get(folderID)) {
                     if (supergroups.containsKey(chatID)) {
-                        loadChatHistory(chatID);
+                        loadChatHistory(chatID, dateUnix);
                     }
                 }
+                System.out.println("Сообщения загружены");
             } else {
                 System.out.println("Нет такой папки");
             }
-        } catch (NumberFormatException e) {
-            System.out.println("Начинаю загрузку со всех каналов");
-            for (Long channelID : supergroups.keySet()) {
-                loadChatHistory(channelID);
-            }
         }
-        System.out.println("Сообщения загружены");
     }
 
-    private void loadChatHistory(Long channelID) {
+    private void loadChatHistory(Long channelID, Long dateUnix) {
         int messagesLeft = PropertyHandler.getMessagesToDownload();
         long fromMessageID = 0;
-        while (messagesLeft > 0) {
+        while (true) {
             client.send(
                     new TdApi.GetChatHistory(
                             channelID, fromMessageID, 0, 50, false),
@@ -144,7 +146,7 @@ public class UserBot implements AutoCloseable {
             } catch (InterruptedException e) {
                 System.out.println(e.getMessage());
             }
-            fromMessageID = chatHistoryHandler.getLastID();
+            fromMessageID = chatHistoryHandler.getLastMessageID();
             messagesLeft = messagesLeft - chatHistoryHandler.getCountArrived();
             try {
                 Thread.sleep(333);
@@ -153,6 +155,16 @@ public class UserBot implements AutoCloseable {
             }
             if (chatHistoryHandler.getCountArrived() == 0) {
                 break;
+            }
+            if (dateUnix != null) {
+                if (channelID.equals(chatHistoryHandler.getLastMessageChatID())
+                        && chatHistoryHandler.getLastMessageDate() < dateUnix) {
+                    break;
+                }
+            } else {
+                if (messagesLeft < 1) {
+                    break;
+                }
             }
         }
         System.out.println("Загрузка сообщений из " + chats.get(channelID).title + " закончена");
@@ -195,7 +207,6 @@ public class UserBot implements AutoCloseable {
                     text = "Документ" + System.lineSeparator() + md.caption.text;
                 }
                 default -> {
-                    System.out.println("сообщение иного типа");
                 }
             }
             notes.put(msgID, new Note(msgDate, senderName, text));
@@ -214,7 +225,7 @@ public class UserBot implements AutoCloseable {
                         }
                     });
             try {
-                Thread.sleep(333);
+                Thread.sleep(200);
             } catch (InterruptedException e) {
                 System.out.println(e.getMessage());
             }

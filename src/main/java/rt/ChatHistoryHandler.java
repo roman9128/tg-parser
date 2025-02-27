@@ -26,8 +26,19 @@ public class ChatHistoryHandler implements GenericResultHandler<TdApi.Messages> 
         }
     }
 
-    public Long getLastID() {
+    public Long getLastMessageID() {
+        assert MESSAGES.peekLast() != null;
         return MESSAGES.peekLast().id;
+    }
+
+    public Long getLastMessageDate() {
+        assert MESSAGES.peekLast() != null;
+        return Long.valueOf(MESSAGES.peekLast().date);
+    }
+
+    public Long getLastMessageChatID() {
+        assert MESSAGES.peekLast() != null;
+        return MESSAGES.peekLast().chatId;
     }
 
     public int getCountArrived() {

@@ -47,44 +47,34 @@ public class Main {
             try (Scanner scanner = new Scanner(System.in)) {
                 while (isWorking.get()) {
                     if (userBot.isLoggedIn()) {
-                        System.out.println("_________________________________" + System.lineSeparator()
-                                + "|       Введи команду:" + System.lineSeparator()
-                                + "| stop - выход (авторизация сохранена)" + System.lineSeparator()
-                                + "| logout - выйти из аккаунта" + System.lineSeparator()
-                                + "| show - посмотреть список папок" + System.lineSeparator()
-                                + "| load (x) - загрузить сообщения из каналов (номер папки вместо х для загрузки только из этой папки) " + System.lineSeparator()
-                                + "| write - записать в файл" + System.lineSeparator()
-                                + "|_________________________________" + System.lineSeparator());
+                        printMenu();
+                        String[] args = {"", "", ""};
                         String consoleText = scanner.nextLine();
-                        String[] command = consoleText.split(" ", 2);
+                        String[] command = consoleText.split(" ", 3);
+                        System.arraycopy(command, 0, args, 0, command.length);
 
-                        switch (command[0]) {
-                            case "stop":
+                        switch (args[0]) {
+                            case "show" -> {
+                                userBot.showFolders();
+                            }
+                            case "load" -> {
+                                loadHistory(userBot, args[1], args[2]);
+                            }
+                            case "write" -> {
+                                writeHistoryToFile(userBot);
+                            }
+                            case "stop" -> {
                                 isWorking.set(false);
                                 userBot.getClient().sendClose();
-                                break;
-                            case "logout":
+                            }
+                            case "logout" -> {
                                 userBot.getClient().logOutAsync();
                                 isWorking.set(false);
                                 userBot.getClient().sendClose();
-                                break;
-                            case "load":
-                                if (command.length == 2) {
-                                    loadHistory(userBot, command[1]);
-                                    break;
-                                } else {
-                                    loadHistory(userBot, command[0]);
-                                    break;
-                                }
-                            case "write":
-                                writeHistoryToFile(userBot);
-                                break;
-                            case "show":
-                                userBot.showFolders();
-                                break;
-                            default:
+                            }
+                            default -> {
                                 System.out.println("неизвестная команда");
-                                break;
+                            }
                         }
                     } else {
                         Thread.sleep(2000);
@@ -98,15 +88,38 @@ public class Main {
         });
     }
 
+    private static void printMenu() {
+        System.out.println("_________________________________" + System.lineSeparator()
+                + "|          Введи команду:" + System.lineSeparator()
+                + "|" + System.lineSeparator()
+                + "| show - посмотреть список папок" + System.lineSeparator()
+                + "|" + System.lineSeparator()
+                + "| команды для загрузки сообщений строятся по схеме:" + System.lineSeparator()
+                + "| load 1_параметр 2_параметр" + System.lineSeparator()
+                + "| в качестве 1 параметра может быть:" + System.lineSeparator()
+                + "| - число для обозначения номера папки для загрузки сообщений только из указанной папки" + System.lineSeparator()
+                + "| - all для загрузки сообщений из всех пабликов" + System.lineSeparator()
+                + "| в качестве 2 параметра может быть указана дата в формате DD.MM.YYYY" + System.lineSeparator()
+                + "| - если дата указана, то загрузятся сообщения от указанной даты до текущего момента" + System.lineSeparator()
+                + "| - если даты нет, то будет загружено не менее " + PropertyHandler.getMessagesToDownload() + " сообщ. с канала" + System.lineSeparator()
+                + "| первый параметр указывать нужно, второй - по необходимости" + System.lineSeparator()
+                + "|" + System.lineSeparator()
+                + "| write - записать в файл" + System.lineSeparator()
+                + "|" + System.lineSeparator()
+                + "| stop - выход (авторизация сохранена)" + System.lineSeparator()
+                + "| logout - выйти из аккаунта" + System.lineSeparator()
+                + "|_________________________________" + System.lineSeparator());
+    }
+
     private static void writeHistoryToFile(UserBot userBot) {
         ExecutorService writer = Executors.newSingleThreadExecutor();
         writer.execute(userBot::writeHistory);
         writer.shutdown();
     }
 
-    private static void loadHistory(UserBot userBot, String secondArg) {
+    private static void loadHistory(UserBot userBot, String folderIDString, String dateString) {
         ExecutorService loader = Executors.newSingleThreadExecutor();
-        loader.execute(() -> userBot.loadChannelsHistory(secondArg));
+        loader.execute(() -> userBot.loadChannelsHistory(folderIDString, dateString));
         loader.shutdown();
     }
 
