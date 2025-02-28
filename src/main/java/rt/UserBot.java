@@ -117,7 +117,7 @@ public class UserBot implements AutoCloseable {
             for (Long channelID : supergroups.keySet()) {
                 loadChatHistory(channelID, dateUnix);
             }
-            System.out.println("Сообщения загружены");
+            System.out.println("Сообщения загружены. Всего: "+ chatHistoryHandler.getSize() + " сообщ.");
         } else {
             if (chatsInFolders.containsKey(folderID)) {
                 System.out.println("Начинаю загрузку сообщений из папки " + foldersInfo.get(folderID));
@@ -126,7 +126,7 @@ public class UserBot implements AutoCloseable {
                         loadChatHistory(chatID, dateUnix);
                     }
                 }
-                System.out.println("Сообщения загружены");
+                System.out.println("Сообщения загружены. Всего: "+ chatHistoryHandler.getSize() + " сообщ.");
             } else {
                 System.out.println("Нет такой папки");
             }
@@ -135,6 +135,7 @@ public class UserBot implements AutoCloseable {
 
     private void loadChatHistory(Long channelID, Long dateUnix) {
         int messagesLeft = PropertyHandler.getMessagesToDownload();
+        int messagesToStop = PropertyHandler.getMessagesToStop();
         long fromMessageID = 0;
         while (true) {
             client.send(
@@ -148,12 +149,16 @@ public class UserBot implements AutoCloseable {
             }
             fromMessageID = chatHistoryHandler.getLastMessageID();
             messagesLeft = messagesLeft - chatHistoryHandler.getCountArrived();
+            messagesToStop = messagesToStop - chatHistoryHandler.getCountArrived();
             try {
                 Thread.sleep(333);
             } catch (InterruptedException e) {
                 System.out.println(e.getMessage());
             }
             if (chatHistoryHandler.getCountArrived() == 0) {
+                break;
+            }
+            if (messagesToStop < 1) {
                 break;
             }
             if (dateUnix != null) {
@@ -182,9 +187,9 @@ public class UserBot implements AutoCloseable {
             System.out.println("Нечего записывать. Сначала нужно загрузить сообщения");
             return;
         }
-        System.out.println("Начинаю запись в файл");
+        System.out.println("Начинаю запись в файл (" + chatHistoryHandler.getSize() + " сообщ. всего)");
         while (!chatHistoryHandler.historyIsEmpty()) {
-            System.out.println(chatHistoryHandler.getSize() + " сообщен. осталось записать");
+            System.out.print(chatHistoryHandler.getSize() + " сообщен. осталось записать" + "\r");
             TdApi.Message message = chatHistoryHandler.takeMessage();
             Integer msgDate = message.date;
             Long senderID = message.chatId;

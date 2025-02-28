@@ -20,7 +20,7 @@ public class ChatHistoryHandler implements GenericResultHandler<TdApi.Messages> 
             for (TdApi.Message message : messages.messages) {
                 MESSAGES.offer(message);
             }
-            System.out.println(MESSAGES.size() + " сообщен. всего загружено");
+            System.out.print(MESSAGES.size() + " сообщен. всего загружено" + "\r");
         } catch (Exception e) {
             System.out.println(e.getMessage());
         }
