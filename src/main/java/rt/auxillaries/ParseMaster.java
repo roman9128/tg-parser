@@ -1,4 +1,4 @@
-package rt;
+package rt.auxillaries;
 
 import java.time.*;
 import java.time.format.DateTimeFormatter;

@@ -5,6 +5,8 @@ import it.tdlight.Init;
 import it.tdlight.Log;
 import it.tdlight.Slf4JLogMessageHandler;
 import it.tdlight.client.*;
+import rt.auxillaries.PropertyHandler;
+import rt.model.UserBot;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -63,6 +65,9 @@ public class Main {
                             case "write" -> {
                                 writeHistoryToFile(userBot);
                             }
+                            case "clear" -> {
+                                userBot.clear();
+                            }
                             case "stop" -> {
                                 isWorking.set(false);
                                 userBot.getClient().sendClose();
@@ -105,6 +110,8 @@ public class Main {
                 + "| первый параметр указывать нужно, второй - по необходимости" + System.lineSeparator()
                 + "|" + System.lineSeparator()
                 + "| write - записать в файл" + System.lineSeparator()
+                + "|" + System.lineSeparator()
+                + "| clear - удалить загруженное" + System.lineSeparator()
                 + "|" + System.lineSeparator()
                 + "| stop - выход (авторизация сохранена)" + System.lineSeparator()
                 + "| logout - выйти из аккаунта" + System.lineSeparator()

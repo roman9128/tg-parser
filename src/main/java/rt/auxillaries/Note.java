@@ -1,4 +1,4 @@
-package rt;
+package rt.auxillaries;
 
 import java.time.Instant;
 import java.time.LocalDateTime;

@@ -1,10 +1,12 @@
-package rt;
+package rt.model;
 
 import it.tdlight.client.*;
 import it.tdlight.jni.TdApi;
+import rt.auxillaries.MessageRecorder;
+import rt.auxillaries.Note;
+import rt.auxillaries.ParseMaster;
+import rt.auxillaries.PropertyHandler;
 
-import java.io.FileWriter;
-import java.io.IOException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
@@ -21,7 +23,7 @@ public class UserBot implements AutoCloseable {
     private final ConcurrentMap<Long, TdApi.Supergroup> supergroups = new ConcurrentHashMap<>();
     private final ConcurrentMap<Long, Note> notes = new ConcurrentHashMap<>();
     private final ChatHistoryHandler chatHistoryHandler = new ChatHistoryHandler();
-
+    private final MessageRecorder messageRecorder = new MessageRecorder();
 
     public UserBot(SimpleTelegramClientBuilder clientBuilder,
                    ConsoleInteractiveAuthenticationData authenticationData) {
@@ -112,12 +114,16 @@ public class UserBot implements AutoCloseable {
         Integer folderID = ParseMaster.parseInteger(folderIDString);
         Long dateUnix = ParseMaster.parseUnixTime(dateString);
 
+        if (dateUnix != null) {
+            chatHistoryHandler.setDateUnix(dateUnix);
+        }
+
         if (folderID == null) {
             System.out.println("Начинаю загрузку со всех каналов");
             for (Long channelID : supergroups.keySet()) {
                 loadChatHistory(channelID, dateUnix);
             }
-            System.out.println("Сообщения загружены. Всего: "+ chatHistoryHandler.getSize() + " сообщ.");
+            System.out.println("Сообщения загружены. Всего: " + chatHistoryHandler.getSize() + " сообщ.");
         } else {
             if (chatsInFolders.containsKey(folderID)) {
                 System.out.println("Начинаю загрузку сообщений из папки " + foldersInfo.get(folderID));
@@ -126,11 +132,12 @@ public class UserBot implements AutoCloseable {
                         loadChatHistory(chatID, dateUnix);
                     }
                 }
-                System.out.println("Сообщения загружены. Всего: "+ chatHistoryHandler.getSize() + " сообщ.");
+                System.out.println("Сообщения загружены. Всего: " + chatHistoryHandler.getSize() + " сообщ.");
             } else {
                 System.out.println("Нет такой папки");
             }
         }
+        chatHistoryHandler.setDateUnix(0L);
     }
 
     private void loadChatHistory(Long channelID, Long dateUnix) {
@@ -147,9 +154,11 @@ public class UserBot implements AutoCloseable {
             } catch (InterruptedException e) {
                 System.out.println(e.getMessage());
             }
-            fromMessageID = chatHistoryHandler.getLastMessageID();
-            messagesLeft = messagesLeft - chatHistoryHandler.getCountArrived();
-            messagesToStop = messagesToStop - chatHistoryHandler.getCountArrived();
+            if (!chatHistoryHandler.historyIsEmpty()) {
+                fromMessageID = chatHistoryHandler.getLastMessageID();
+                messagesLeft = messagesLeft - chatHistoryHandler.getCountArrived();
+                messagesToStop = messagesToStop - chatHistoryHandler.getCountArrived();
+            }
             try {
                 Thread.sleep(333);
             } catch (InterruptedException e) {
@@ -176,10 +185,10 @@ public class UserBot implements AutoCloseable {
         chatHistoryHandler.zeroCounter();
     }
 
-    private void writeToChronic(String text) throws IOException {
-        try (FileWriter fileWriter = new FileWriter(PropertyHandler.getFilePath(), true)) {
-            fileWriter.write(text);
-        }
+    public void clear() {
+        notes.clear();
+        chatHistoryHandler.clear();
+        System.out.println("Загружено: " + chatHistoryHandler.getSize() + " cообщ.");
     }
 
     public void writeHistory() {
@@ -221,11 +230,7 @@ public class UserBot implements AutoCloseable {
                             System.out.println(error.getMessage());
                         } else {
                             notes.get(msgID).setMsgLink(link.link);
-                            try {
-                                writeToChronic(notes.get(msgID).toString());
-                            } catch (IOException e) {
-                                System.out.println(e.getMessage());
-                            }
+                            messageRecorder.writeToFile(notes.get(msgID).toString());
                             notes.remove(msgID);
                         }
                     });

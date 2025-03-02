@@ -1,4 +1,4 @@
-package rt;
+package rt.model;
 
 import it.tdlight.client.GenericResultHandler;
 import it.tdlight.client.Result;
@@ -11,6 +11,7 @@ public class ChatHistoryHandler implements GenericResultHandler<TdApi.Messages> 
 
     private final ConcurrentLinkedDeque<TdApi.Message> MESSAGES = new ConcurrentLinkedDeque<>();
     private final AtomicInteger countArrived = new AtomicInteger(0);
+    private Long dateUnix = 0L;
 
     @Override
     public void onResult(Result result) {
@@ -18,7 +19,9 @@ public class ChatHistoryHandler implements GenericResultHandler<TdApi.Messages> 
             TdApi.Messages messages = (TdApi.Messages) result.get();
             countArrived.set(messages.totalCount);
             for (TdApi.Message message : messages.messages) {
-                MESSAGES.offer(message);
+                if (message.date > dateUnix) {
+                    MESSAGES.offer(message);
+                }
             }
             System.out.print(MESSAGES.size() + " сообщен. всего загружено" + "\r");
         } catch (Exception e) {
@@ -26,38 +29,46 @@ public class ChatHistoryHandler implements GenericResultHandler<TdApi.Messages> 
         }
     }
 
-    public Long getLastMessageID() {
+    protected Long getLastMessageID() {
         assert MESSAGES.peekLast() != null;
         return MESSAGES.peekLast().id;
     }
 
-    public Long getLastMessageDate() {
+    protected Long getLastMessageDate() {
         assert MESSAGES.peekLast() != null;
         return Long.valueOf(MESSAGES.peekLast().date);
     }
 
-    public Long getLastMessageChatID() {
+    protected Long getLastMessageChatID() {
         assert MESSAGES.peekLast() != null;
         return MESSAGES.peekLast().chatId;
     }
 
-    public int getCountArrived() {
+    protected int getCountArrived() {
         return countArrived.get();
     }
 
-    public void zeroCounter() {
+    protected void zeroCounter() {
         countArrived.set(0);
     }
 
-    public TdApi.Message takeMessage() {
+    protected TdApi.Message takeMessage() {
         return MESSAGES.pollFirst();
     }
 
-    public boolean historyIsEmpty() {
+    protected boolean historyIsEmpty() {
         return MESSAGES.isEmpty();
     }
 
-    public int getSize() {
+    protected int getSize() {
         return MESSAGES.size();
+    }
+
+    protected void setDateUnix(Long dateUnix) {
+        this.dateUnix = dateUnix;
+    }
+
+    protected void clear() {
+        MESSAGES.clear();
     }
 }
