@@ -197,6 +197,7 @@ public class UserBot implements AutoCloseable {
             return;
         }
         System.out.println("Начинаю запись в файл (" + chatHistoryHandler.getSize() + " сообщ. всего)");
+        String channelName = "";
         while (!chatHistoryHandler.historyIsEmpty()) {
             System.out.print(chatHistoryHandler.getSize() + " сообщен. осталось записать" + "\r");
             TdApi.Message message = chatHistoryHandler.takeMessage();
@@ -205,6 +206,12 @@ public class UserBot implements AutoCloseable {
             Long msgID = message.id;
             String senderName = chats.get(senderID).title;
             String text = "";
+
+            if (!channelName.equals(senderName)) {
+                channelName = senderName;
+                messageRecorder.writeToFile(">>>>>>> Далее сообщения из канала " + channelName + System.lineSeparator());
+            }
+
 
             TdApi.MessageContent messageContent = message.content;
             switch (messageContent) {

@@ -37,13 +37,13 @@ public class Note {
         StringBuilder builder = new StringBuilder();
         builder.append("{")
                 .append(System.lineSeparator())
-                .append("Время публикации: ").append(getStringDateTime(msgTime))
+                .append("Время: ").append(getStringDateTime(msgTime))
                 .append(System.lineSeparator())
                 .append("Автор: ").append(senderName)
                 .append(System.lineSeparator())
                 .append("Ссылка: ").append(msgLink)
                 .append(System.lineSeparator())
-                .append(text)
+                .append("Текст: ").append(text)
                 .append(System.lineSeparator())
                 .append("}")
                 .append(System.lineSeparator());
