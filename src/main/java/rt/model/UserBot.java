@@ -110,37 +110,44 @@ public class UserBot implements AutoCloseable {
         }
     }
 
-    public void loadChannelsHistory(String folderIDString, String dateString) {
+    public void loadChannelsHistory(String folderIDString, String dateFromString, String dateToString) {
         Integer folderID = ParseMaster.parseInteger(folderIDString);
-        Long dateUnix = ParseMaster.parseUnixTime(dateString);
+        Long dateFromUnix = ParseMaster.parseUnixDateStartOfDay(dateFromString);
+        Long dateToUnix = ParseMaster.parseUnixDateEndOfDay(dateToString);
 
-        if (dateUnix != null) {
-            chatHistoryHandler.setDateUnix(dateUnix);
+        if (dateFromUnix != null) {
+            chatHistoryHandler.setDateFromUnix(dateFromUnix);
+        }
+        if (dateToUnix != null) {
+            chatHistoryHandler.setDateToUnix(dateToUnix);
         }
 
         if (folderID == null) {
             System.out.println("Начинаю загрузку со всех каналов");
             for (Long channelID : supergroups.keySet()) {
-                loadChatHistory(channelID, dateUnix);
+                loadChatHistory(channelID, dateFromUnix);
             }
-            System.out.println("Сообщения загружены. Всего: " + chatHistoryHandler.getSize() + " сообщ.");
+            chatHistoryHandler.removeSurplus();
+            System.out.println("Сообщения загружены. Всего: " + chatHistoryHandler.getSize() + " сообщ., соотв. заданным параметрам");
         } else {
             if (chatsInFolders.containsKey(folderID)) {
                 System.out.println("Начинаю загрузку сообщений из папки " + foldersInfo.get(folderID));
                 for (Long chatID : chatsInFolders.get(folderID)) {
                     if (supergroups.containsKey(chatID)) {
-                        loadChatHistory(chatID, dateUnix);
+                        loadChatHistory(chatID, dateFromUnix);
                     }
                 }
-                System.out.println("Сообщения загружены. Всего: " + chatHistoryHandler.getSize() + " сообщ.");
+                chatHistoryHandler.removeSurplus();
+                System.out.println("Сообщения загружены. Всего: " + chatHistoryHandler.getSize() + " сообщ., соотв. заданным параметрам");
             } else {
                 System.out.println("Нет такой папки");
             }
         }
-        chatHistoryHandler.setDateUnix(0L);
+        chatHistoryHandler.setDateFromUnix(0L);
+        chatHistoryHandler.setDateToUnix(Long.MAX_VALUE);
     }
 
-    private void loadChatHistory(Long channelID, Long dateUnix) {
+    private void loadChatHistory(Long channelID, Long dateFromUnix) {
         int messagesLeft = PropertyHandler.getMessagesToDownload();
         int messagesToStop = PropertyHandler.getMessagesToStop();
         long fromMessageID = 0;
@@ -170,9 +177,9 @@ public class UserBot implements AutoCloseable {
             if (messagesToStop < 1) {
                 break;
             }
-            if (dateUnix != null) {
+            if (dateFromUnix != null) {
                 if (channelID.equals(chatHistoryHandler.getLastMessageChatID())
-                        && chatHistoryHandler.getLastMessageDate() < dateUnix) {
+                        && chatHistoryHandler.getLastMessageDate() <= dateFromUnix) {
                     break;
                 }
             } else {
@@ -212,7 +219,6 @@ public class UserBot implements AutoCloseable {
                 messageRecorder.writeToFile(">>>>>>> Далее сообщения из канала " + channelName + System.lineSeparator());
             }
 
-
             TdApi.MessageContent messageContent = message.content;
             switch (messageContent) {
                 case TdApi.MessageText mt -> {
@@ -234,7 +240,7 @@ public class UserBot implements AutoCloseable {
             client.send(new TdApi.GetMessageLink(senderID, msgID, 0, true, true))
                     .whenCompleteAsync((link, error) -> {
                         if (error != null) {
-                            System.out.println(error.getMessage());
+                            System.out.println("Ошибка при запросе ссылки: " + error.getMessage());
                         } else {
                             notes.get(msgID).setMsgLink(link.link);
                             messageRecorder.writeToFile(notes.get(msgID).toString());

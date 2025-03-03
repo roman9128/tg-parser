@@ -4,26 +4,31 @@ import it.tdlight.client.GenericResultHandler;
 import it.tdlight.client.Result;
 import it.tdlight.jni.TdApi;
 
+import java.util.Optional;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class ChatHistoryHandler implements GenericResultHandler<TdApi.Messages> {
 
     private final ConcurrentLinkedDeque<TdApi.Message> MESSAGES = new ConcurrentLinkedDeque<>();
     private final AtomicInteger countArrived = new AtomicInteger(0);
-    private Long dateUnix = 0L;
+    private final AtomicLong lastMessageDate = new AtomicLong(0);
+    private Long dateFromUnix = 0L;
+    private Long dateToUnix = Long.MAX_VALUE;
 
     @Override
     public void onResult(Result result) {
         try {
             TdApi.Messages messages = (TdApi.Messages) result.get();
             countArrived.set(messages.totalCount);
+            lastMessageDate.set(messages.messages[messages.messages.length - 1].date);
             for (TdApi.Message message : messages.messages) {
-                if (message.date > dateUnix) {
+                if (dateFromUnix <= message.date) {
                     MESSAGES.offer(message);
                 }
             }
-            System.out.print(MESSAGES.size() + " сообщен. всего загружено" + "\r");
+            System.out.print("Предварительно загружено " + MESSAGES.size() + " сообщен." + "\r");
         } catch (Exception e) {
             System.out.println(e.getMessage());
         }
@@ -35,13 +40,15 @@ public class ChatHistoryHandler implements GenericResultHandler<TdApi.Messages> 
     }
 
     protected Long getLastMessageDate() {
-        assert MESSAGES.peekLast() != null;
-        return Long.valueOf(MESSAGES.peekLast().date);
+        return lastMessageDate.get();
     }
 
     protected Long getLastMessageChatID() {
-        assert MESSAGES.peekLast() != null;
-        return MESSAGES.peekLast().chatId;
+        try {
+            return MESSAGES.peekLast().chatId;
+        } catch (NullPointerException e) {
+            return 0L;
+        }
     }
 
     protected int getCountArrived() {
@@ -64,11 +71,20 @@ public class ChatHistoryHandler implements GenericResultHandler<TdApi.Messages> 
         return MESSAGES.size();
     }
 
-    protected void setDateUnix(Long dateUnix) {
-        this.dateUnix = dateUnix;
+    protected void setDateFromUnix(Long dateFromUnix) {
+        this.dateFromUnix = dateFromUnix;
+    }
+
+    protected void setDateToUnix(Long dateToUnix) {
+        this.dateToUnix = dateToUnix;
     }
 
     protected void clear() {
         MESSAGES.clear();
+    }
+
+    protected void removeSurplus() {
+        MESSAGES.removeIf(message -> message.date > dateToUnix);
+        System.out.println("Проверка на наличие неподходящих сообщений выполнена");
     }
 }

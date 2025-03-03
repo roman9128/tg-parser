@@ -9,7 +9,7 @@ public class MessageRecorder {
         try (FileWriter fileWriter = new FileWriter(PropertyHandler.getFilePath(), true)) {
             fileWriter.write(text);
         } catch (IOException e) {
-            System.out.println(e.getMessage());
+            System.out.println("Ошибка при записи в файл: " + e.getMessage());
         }
     }
 }
