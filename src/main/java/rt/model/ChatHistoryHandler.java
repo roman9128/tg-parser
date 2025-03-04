@@ -4,7 +4,6 @@ import it.tdlight.client.GenericResultHandler;
 import it.tdlight.client.Result;
 import it.tdlight.jni.TdApi;
 
-import java.util.Optional;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -30,7 +29,7 @@ public class ChatHistoryHandler implements GenericResultHandler<TdApi.Messages> 
             }
             System.out.print("Предварительно загружено " + MESSAGES.size() + " сообщен." + "\r");
         } catch (Exception e) {
-            System.out.println(e.getMessage());
+            System.out.println("Ошибка при получении сообщений с сервера: " + e.getMessage());
         }
     }
 
@@ -85,6 +84,6 @@ public class ChatHistoryHandler implements GenericResultHandler<TdApi.Messages> 
 
     protected void removeSurplus() {
         MESSAGES.removeIf(message -> message.date > dateToUnix);
-        System.out.println("Проверка на наличие неподходящих сообщений выполнена");
+        System.out.println("Проверка на наличие неподходящих по дате сообщений выполнена");
     }
 }

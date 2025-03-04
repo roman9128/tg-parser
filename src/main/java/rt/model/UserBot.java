@@ -2,10 +2,7 @@ package rt.model;
 
 import it.tdlight.client.*;
 import it.tdlight.jni.TdApi;
-import rt.auxillaries.MessageRecorder;
-import rt.auxillaries.Note;
-import rt.auxillaries.ParseMaster;
-import rt.auxillaries.PropertyHandler;
+import rt.auxillaries.*;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -96,7 +93,7 @@ public class UserBot implements AutoCloseable {
         for (int folderID : foldersInfo.keySet()) {
             client.send(new TdApi.GetChatFolder(folderID)).whenCompleteAsync((folder, error) -> {
                 if (error != null) {
-                    System.out.println(error.getMessage());
+                    System.out.println("Ошибка при получении содержимого папок: " + error.getMessage());
                 } else {
                     chatsInFolders.put(folderID, folder.includedChatIds);
                 }
@@ -115,12 +112,13 @@ public class UserBot implements AutoCloseable {
         Long dateFromUnix = ParseMaster.parseUnixDateStartOfDay(dateFromString);
         Long dateToUnix = ParseMaster.parseUnixDateEndOfDay(dateToString);
 
-        if (dateFromUnix != null) {
-            chatHistoryHandler.setDateFromUnix(dateFromUnix);
+        if (dateFromUnix > dateToUnix) {
+            System.out.println("Вторая дата не может быть больше первой");
+            return;
         }
-        if (dateToUnix != null) {
-            chatHistoryHandler.setDateToUnix(dateToUnix);
-        }
+
+        chatHistoryHandler.setDateFromUnix(dateFromUnix);
+        chatHistoryHandler.setDateToUnix(dateToUnix);
 
         if (folderID == null) {
             System.out.println("Начинаю загрузку со всех каналов");
@@ -143,7 +141,7 @@ public class UserBot implements AutoCloseable {
                 System.out.println("Нет такой папки");
             }
         }
-        chatHistoryHandler.setDateFromUnix(0L);
+        chatHistoryHandler.setDateFromUnix(0L); // возврат значений по умолчанию
         chatHistoryHandler.setDateToUnix(Long.MAX_VALUE);
     }
 
@@ -157,7 +155,7 @@ public class UserBot implements AutoCloseable {
                             channelID, fromMessageID, 0, 50, false),
                     chatHistoryHandler);
             try {
-                Thread.sleep(333);
+                Thread.sleep(Randomizer.giveNumber());
             } catch (InterruptedException e) {
                 System.out.println(e.getMessage());
             }
@@ -167,7 +165,7 @@ public class UserBot implements AutoCloseable {
                 messagesToStop = messagesToStop - chatHistoryHandler.getCountArrived();
             }
             try {
-                Thread.sleep(333);
+                Thread.sleep(Randomizer.giveNumber());
             } catch (InterruptedException e) {
                 System.out.println(e.getMessage());
             }
@@ -177,7 +175,7 @@ public class UserBot implements AutoCloseable {
             if (messagesToStop < 1) {
                 break;
             }
-            if (dateFromUnix != null) {
+            if (dateFromUnix != 0L) {
                 if (channelID.equals(chatHistoryHandler.getLastMessageChatID())
                         && chatHistoryHandler.getLastMessageDate() <= dateFromUnix) {
                     break;
@@ -234,6 +232,7 @@ public class UserBot implements AutoCloseable {
                     text = "Документ" + System.lineSeparator() + md.caption.text;
                 }
                 default -> {
+                    text = "Сообщение иного типа" + System.lineSeparator();
                 }
             }
             notes.put(msgID, new Note(msgDate, senderName, text));
@@ -248,7 +247,7 @@ public class UserBot implements AutoCloseable {
                         }
                     });
             try {
-                Thread.sleep(200);
+                Thread.sleep(Randomizer.giveNumber());
             } catch (InterruptedException e) {
                 System.out.println(e.getMessage());
             }

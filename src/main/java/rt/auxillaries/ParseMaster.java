@@ -19,7 +19,7 @@ public class ParseMaster {
             LocalDate date = LocalDate.parse(dateString, formatter);
             return date.atStartOfDay(ZoneId.systemDefault()).toEpochSecond();
         } catch (Exception e) {
-            return null;
+            return 0L;
         }
     }
     public static Long parseUnixDateEndOfDay(String dateString) {
@@ -28,7 +28,7 @@ public class ParseMaster {
             LocalDate date = LocalDate.parse(dateString, formatter).plusDays(1L);
             return date.atStartOfDay(ZoneId.systemDefault()).toEpochSecond();
         } catch (Exception e) {
-            return null;
+            return Long.MAX_VALUE;
         }
     }
 
