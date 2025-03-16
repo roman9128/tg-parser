@@ -5,9 +5,8 @@ import it.tdlight.Init;
 import it.tdlight.Log;
 import it.tdlight.Slf4JLogMessageHandler;
 import it.tdlight.client.*;
-import it.tdlight.jni.TdApi;
+import rt.authentication.PhoneAuthentication;
 import rt.auxillaries.PropertyHandler;
-import rt.auxillaries.Randomizer;
 import rt.model.UserBot;
 
 import java.nio.file.Path;
@@ -24,15 +23,14 @@ public class Main {
 
     public static void main(String[] args) throws Exception {
         Init.init();
-        Log.setLogMessageHandler(0, new Slf4JLogMessageHandler());
+        Log.setLogMessageHandler(1, new Slf4JLogMessageHandler());
         try (SimpleTelegramClientFactory clientFactory = new SimpleTelegramClientFactory()) {
             APIToken apiToken = new APIToken(PropertyHandler.getApiID(), PropertyHandler.getApiHash());
             TDLibSettings settings = TDLibSettings.create(apiToken);
-            Path sessionPath = Paths.get("tdlight-session");
+            Path sessionPath = Paths.get("session");
             settings.setDatabaseDirectoryPath(sessionPath.resolve("data"));
             SimpleTelegramClientBuilder clientBuilder = clientFactory.builder(settings);
-            var authenticationData = AuthenticationSupplier.consoleLogin();
-
+            PhoneAuthentication authenticationData = new PhoneAuthentication();
             try (UserBot userBot = new UserBot(clientBuilder, authenticationData)) {
                 initConsoleThread(userBot);
                 userBot.getClient().waitForExit();

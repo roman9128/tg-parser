@@ -2,6 +2,8 @@ package rt.model;
 
 import it.tdlight.client.*;
 import it.tdlight.jni.TdApi;
+import rt.authentication.ClientInteractionImpl;
+import rt.authentication.PhoneAuthentication;
 import rt.auxillaries.*;
 
 import java.util.concurrent.ConcurrentHashMap;
@@ -12,6 +14,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 public class UserBot implements AutoCloseable {
 
+    private final ExecutorService blockingExecutor = Executors.newSingleThreadExecutor();
     private final SimpleTelegramClient client;
     private final AtomicBoolean isLoggedIn = new AtomicBoolean(false);
     private final ConcurrentMap<Long, TdApi.Chat> chats = new ConcurrentHashMap<>();
@@ -23,12 +26,13 @@ public class UserBot implements AutoCloseable {
     private final MessageRecorder messageRecorder = new MessageRecorder();
 
     public UserBot(SimpleTelegramClientBuilder clientBuilder,
-                   ConsoleInteractiveAuthenticationData authenticationData) {
+                   PhoneAuthentication authenticationData) {
         clientBuilder.addUpdateHandler(TdApi.UpdateAuthorizationState.class, this::onUpdateAuthorizationState);
         clientBuilder.addUpdateHandler(TdApi.UpdateNewChat.class, this::onUpdateChat);
         clientBuilder.addUpdateHandler(TdApi.UpdateSupergroup.class, this::onUpdateSuperGroup);
         clientBuilder.addUpdateHandler(TdApi.UpdateChatFolders.class, this::onUpdateFolder);
         this.client = clientBuilder.build(authenticationData);
+        client.setClientInteraction(new ClientInteractionImpl(blockingExecutor, client));
     }
 
     private void onUpdateAuthorizationState(TdApi.UpdateAuthorizationState update) {
@@ -274,10 +278,12 @@ public class UserBot implements AutoCloseable {
             System.out.println("Вышел из аккаунта");
             isLoggedIn.set(false);
         });
+        blockingExecutor.shutdownNow();
     }
 
     @Override
     public void close() throws Exception {
         client.sendClose();
+        blockingExecutor.shutdownNow();
     }
 }
