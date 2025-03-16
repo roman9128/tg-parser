@@ -34,7 +34,7 @@ public class UserBot implements AutoCloseable {
     private void onUpdateAuthorizationState(TdApi.UpdateAuthorizationState update) {
         TdApi.AuthorizationState authorizationState = update.authorizationState;
         if (authorizationState instanceof TdApi.AuthorizationStateReady) {
-            System.out.println("Вошёл в аккаунт");
+            System.out.println("Авторизован");
             isLoggedIn.set(true);
             getChats();
             getChannels();
@@ -44,8 +44,7 @@ public class UserBot implements AutoCloseable {
         } else if (authorizationState instanceof TdApi.AuthorizationStateClosed) {
             System.out.println("Соединение закрыто");
         } else if (authorizationState instanceof TdApi.AuthorizationStateLoggingOut) {
-            System.out.println("Вышел из аккаунта");
-            isLoggedIn.set(false);
+            System.out.println("Не авторизован");
         }
     }
 
@@ -262,16 +261,23 @@ public class UserBot implements AutoCloseable {
         return client;
     }
 
-    @Override
-    public void close() throws Exception {
-        client.close();
-    }
-
     private Long transferChatID(Long chatID) {
         return -(1000000000000L + chatID);
     }
 
     public boolean isLoggedIn() {
         return isLoggedIn.get();
+    }
+
+    public void logout() {
+        client.send(new TdApi.LogOut()).thenAccept(ok -> {
+            System.out.println("Вышел из аккаунта");
+            isLoggedIn.set(false);
+        });
+    }
+
+    @Override
+    public void close() throws Exception {
+        client.sendClose();
     }
 }

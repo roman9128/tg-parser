@@ -5,7 +5,9 @@ import it.tdlight.Init;
 import it.tdlight.Log;
 import it.tdlight.Slf4JLogMessageHandler;
 import it.tdlight.client.*;
+import it.tdlight.jni.TdApi;
 import rt.auxillaries.PropertyHandler;
+import rt.auxillaries.Randomizer;
 import rt.model.UserBot;
 
 import java.nio.file.Path;
@@ -29,7 +31,7 @@ public class Main {
             Path sessionPath = Paths.get("tdlight-session");
             settings.setDatabaseDirectoryPath(sessionPath.resolve("data"));
             SimpleTelegramClientBuilder clientBuilder = clientFactory.builder(settings);
-            ConsoleInteractiveAuthenticationData authenticationData = AuthenticationSupplier.consoleLogin();
+            var authenticationData = AuthenticationSupplier.consoleLogin();
 
             try (UserBot userBot = new UserBot(clientBuilder, authenticationData)) {
                 initConsoleThread(userBot);
@@ -69,12 +71,11 @@ public class Main {
                             }
                             case "stop" -> {
                                 isWorking.set(false);
-                                userBot.getClient().sendClose();
+                                userBot.close();
                             }
                             case "logout" -> {
-                                userBot.getClient().logOutAsync();
                                 isWorking.set(false);
-                                userBot.getClient().sendClose();
+                                userBot.logout();
                             }
                             default -> {
                                 System.out.println("неизвестная команда");
