@@ -14,7 +14,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 public class UserBot implements AutoCloseable {
 
-    private final ExecutorService blockingExecutor = Executors.newSingleThreadExecutor();
     private final SimpleTelegramClient client;
     private final AtomicBoolean isLoggedIn = new AtomicBoolean(false);
     private final ConcurrentMap<Long, TdApi.Chat> chats = new ConcurrentHashMap<>();
@@ -24,6 +23,7 @@ public class UserBot implements AutoCloseable {
     private final ConcurrentMap<Long, Note> notes = new ConcurrentHashMap<>();
     private final ChatHistoryHandler chatHistoryHandler = new ChatHistoryHandler();
     private final MessageRecorder messageRecorder = new MessageRecorder();
+    private final ExecutorService blockingExecutor = Executors.newSingleThreadExecutor();
 
     public UserBot(SimpleTelegramClientBuilder clientBuilder,
                    PhoneAuthentication authenticationData) {
@@ -40,6 +40,7 @@ public class UserBot implements AutoCloseable {
         if (authorizationState instanceof TdApi.AuthorizationStateReady) {
             System.out.println("Авторизован");
             isLoggedIn.set(true);
+            System.out.println("Начинаю загрузку чатов, каналов, папок");
             getChats();
             getChannels();
             getFoldersInfo();
@@ -87,12 +88,12 @@ public class UserBot implements AutoCloseable {
             } catch (InterruptedException e) {
                 System.out.println(e.getMessage());
             }
-            getFoldersChats();
+            getChatsFromFolders();
         });
         executor.shutdown();
     }
 
-    private void getFoldersChats() {
+    private void getChatsFromFolders() {
         for (int folderID : foldersInfo.keySet()) {
             client.send(new TdApi.GetChatFolder(folderID)).whenCompleteAsync((folder, error) -> {
                 if (error != null) {
@@ -154,8 +155,7 @@ public class UserBot implements AutoCloseable {
         long fromMessageID = 0;
         while (true) {
             client.send(
-                    new TdApi.GetChatHistory(
-                            channelID, fromMessageID, 0, 50, false),
+                    new TdApi.GetChatHistory(channelID, fromMessageID, 0, 50, false),
                     chatHistoryHandler);
             try {
                 Thread.sleep(Randomizer.giveNumber());
@@ -166,11 +166,6 @@ public class UserBot implements AutoCloseable {
                 fromMessageID = chatHistoryHandler.getLastMessageID();
                 messagesLeft = messagesLeft - chatHistoryHandler.getCountArrived();
                 messagesToStop = messagesToStop - chatHistoryHandler.getCountArrived();
-            }
-            try {
-                Thread.sleep(Randomizer.giveNumber());
-            } catch (InterruptedException e) {
-                System.out.println(e.getMessage());
             }
             if (chatHistoryHandler.getCountArrived() == 0) {
                 break;
@@ -278,12 +273,16 @@ public class UserBot implements AutoCloseable {
             System.out.println("Вышел из аккаунта");
             isLoggedIn.set(false);
         });
-        blockingExecutor.shutdownNow();
+        stopBlockingExecutor();
     }
 
     @Override
     public void close() throws Exception {
         client.sendClose();
+        stopBlockingExecutor();
+    }
+
+    private void stopBlockingExecutor() {
         blockingExecutor.shutdownNow();
     }
 }
