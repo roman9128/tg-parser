@@ -1,4 +1,4 @@
-package rt.authentication;
+package rt.model.authentication;
 
 import it.tdlight.client.*;
 import it.tdlight.util.ScannerUtils;

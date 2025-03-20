@@ -1,4 +1,4 @@
-package rt.auxillaries;
+package rt.model.auxillaries;
 
 import java.io.FileWriter;
 import java.io.IOException;

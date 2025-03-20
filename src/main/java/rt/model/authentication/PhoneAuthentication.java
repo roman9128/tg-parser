@@ -1,4 +1,4 @@
-package rt.authentication;
+package rt.model.authentication;
 
 import it.tdlight.client.AuthenticationData;
 import it.tdlight.client.AuthenticationSupplier;

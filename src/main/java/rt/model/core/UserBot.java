@@ -1,10 +1,10 @@
-package rt.model;
+package rt.model.core;
 
 import it.tdlight.client.*;
 import it.tdlight.jni.TdApi;
-import rt.authentication.ClientInteractionImpl;
-import rt.authentication.PhoneAuthentication;
-import rt.auxillaries.*;
+import rt.model.authentication.ClientInteractionImpl;
+import rt.model.authentication.PhoneAuthentication;
+import rt.model.auxillaries.*;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -15,7 +15,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class UserBot implements AutoCloseable {
 
     private final SimpleTelegramClient client;
-    private final AtomicBoolean isLoggedIn = new AtomicBoolean(false);
     private final ConcurrentMap<Long, TdApi.Chat> chats = new ConcurrentHashMap<>();
     private final ConcurrentMap<Integer, String> foldersInfo = new ConcurrentHashMap<>();
     private final ConcurrentMap<Integer, long[]> chatsInFolders = new ConcurrentHashMap<>();
@@ -39,7 +38,7 @@ public class UserBot implements AutoCloseable {
         TdApi.AuthorizationState authorizationState = update.authorizationState;
         if (authorizationState instanceof TdApi.AuthorizationStateReady) {
             System.out.println("Авторизован");
-            isLoggedIn.set(true);
+            Status.setReadyToInteract(true);
             System.out.println("Начинаю загрузку чатов, каналов, папок");
             getChats();
             getChannels();
@@ -264,21 +263,18 @@ public class UserBot implements AutoCloseable {
         return -(1000000000000L + chatID);
     }
 
-    public boolean isLoggedIn() {
-        return isLoggedIn.get();
-    }
-
     public void logout() {
         client.send(new TdApi.LogOut()).thenAccept(ok -> {
             System.out.println("Вышел из аккаунта");
-            isLoggedIn.set(false);
+            Status.setReadyToInteract(false);
         });
         stopBlockingExecutor();
     }
 
     @Override
-    public void close() throws Exception {
+    public void close() {
         client.sendClose();
+        Status.setReadyToInteract(false);
         stopBlockingExecutor();
     }
 

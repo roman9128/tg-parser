@@ -1,4 +1,4 @@
-package rt.model;
+package rt.model.core;
 
 import it.tdlight.client.GenericResultHandler;
 import it.tdlight.client.Result;

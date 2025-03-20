@@ -1,4 +1,4 @@
-package rt.authentication;
+package rt.model.authentication;
 
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
