@@ -61,8 +61,6 @@ public class ConsoleUI implements View {
             }
         } catch (Exception e) {
             System.err.println("Исключение в консольном потоке: " + e.getMessage());
-        } finally {
-            System.out.println("Консольный поток закрыт");
         }
     }
 
@@ -108,7 +106,7 @@ public class ConsoleUI implements View {
                 + "| - число для обозначения номера папки для загрузки сообщений только из указанной папки" + System.lineSeparator()
                 + "| - all для загрузки сообщений из всех пабликов" + System.lineSeparator()
                 + "| вместо DD.MM.YYYY может быть указана дата в данном формате" + System.lineSeparator()
-                + "| - если даты не указаны вообще, то будет загружено не менее " + PropertyHandler.getMessagesToDownload() + " сообщ. с канала" + System.lineSeparator()
+                + "| - если даты не указаны вообще, то будет загружено примерно " + PropertyHandler.getMessagesToDownload() + " сообщ. с канала" + System.lineSeparator()
                 + "| - если указана одна дата, то загрузятся сообщения с начала указанного дня до текущего момента" + System.lineSeparator()
                 + "| - если указано две даты, то загрузятся сообщения с начала первого указанного дня до конца второго указанного дня" + System.lineSeparator()
                 + "| первый параметр (Х) можно не указывать, если далее нет дат" + System.lineSeparator()
@@ -124,7 +122,11 @@ public class ConsoleUI implements View {
     }
 
     @Override
-    public void print(String text) {
-        System.out.println(text);
+    public void print(String text, boolean needNextLine) {
+        if (needNextLine) {
+            System.out.println(text);
+        } else {
+            System.out.print(text + "\r");
+        }
     }
 }

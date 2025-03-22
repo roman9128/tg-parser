@@ -5,31 +5,33 @@ import it.tdlight.jni.TdApi;
 import rt.model.authentication.ClientInteractionImpl;
 import rt.model.authentication.PhoneAuthentication;
 import rt.model.auxillaries.*;
-import rt.presenter.ServiceListener;
+import rt.presenter.Printer;
+import rt.presenter.ServiceHelper;
 
+import java.io.IOException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 public class UserBot implements AutoCloseable {
 
     private final SimpleTelegramClient client;
-    private final ServiceListener listener;
+    private final Printer printer;
+    private final ChatHistoryHandler chatHistoryHandler;
+    private final MessageRecorder messageRecorder = new MessageRecorder();
+    private final ExecutorService blockingExecutor = Executors.newSingleThreadExecutor();
     private final ConcurrentMap<Long, TdApi.Chat> chats = new ConcurrentHashMap<>();
     private final ConcurrentMap<Integer, String> foldersInfo = new ConcurrentHashMap<>();
     private final ConcurrentMap<Integer, long[]> chatsInFolders = new ConcurrentHashMap<>();
     private final ConcurrentMap<Long, TdApi.Supergroup> supergroups = new ConcurrentHashMap<>();
     private final ConcurrentMap<Long, Note> notes = new ConcurrentHashMap<>();
-    private final ChatHistoryHandler chatHistoryHandler = new ChatHistoryHandler();
-    private final MessageRecorder messageRecorder = new MessageRecorder();
-    private final ExecutorService blockingExecutor = Executors.newSingleThreadExecutor();
 
     public UserBot(SimpleTelegramClientBuilder clientBuilder,
                    PhoneAuthentication authenticationData,
-                   ServiceListener listener) {
-        this.listener = listener;
+                   Printer printer) {
+        this.printer = printer;
+        this.chatHistoryHandler = new ChatHistoryHandler(printer);
         clientBuilder.addUpdateHandler(TdApi.UpdateAuthorizationState.class, this::onUpdateAuthorizationState);
         clientBuilder.addUpdateHandler(TdApi.UpdateNewChat.class, this::onUpdateChat);
         clientBuilder.addUpdateHandler(TdApi.UpdateSupergroup.class, this::onUpdateSuperGroup);
@@ -41,18 +43,16 @@ public class UserBot implements AutoCloseable {
     private void onUpdateAuthorizationState(TdApi.UpdateAuthorizationState update) {
         TdApi.AuthorizationState authorizationState = update.authorizationState;
         if (authorizationState instanceof TdApi.AuthorizationStateReady) {
-            listener.print("Авторизован");
+            printer.print("Авторизован", true);
             Status.setReadyToInteract(true);
-            listener.print("Начинаю загрузку чатов, каналов, папок");
+            printer.print("Начинаю загрузку чатов, каналов, папок", true);
             getChats();
             getChannels();
             getFoldersInfo();
-        } else if (authorizationState instanceof TdApi.AuthorizationStateClosing) {
-            listener.print("Закрытие соединения...");
         } else if (authorizationState instanceof TdApi.AuthorizationStateClosed) {
-            listener.print("Соединение закрыто");
+            printer.print("Соединение закрыто", true);
         } else if (authorizationState instanceof TdApi.AuthorizationStateLoggingOut) {
-            listener.print("Не авторизован");
+            printer.print("Не авторизован", true);
         }
     }
 
@@ -89,7 +89,7 @@ public class UserBot implements AutoCloseable {
             try {
                 Thread.sleep(2000);
             } catch (InterruptedException e) {
-                System.out.println(e.getMessage());
+                printer.print(e.getMessage(), true);
             }
             getChatsFromFolders();
         });
@@ -100,7 +100,7 @@ public class UserBot implements AutoCloseable {
         for (int folderID : foldersInfo.keySet()) {
             client.send(new TdApi.GetChatFolder(folderID)).whenCompleteAsync((folder, error) -> {
                 if (error != null) {
-                    listener.print("Ошибка при получении содержимого папок: " + error.getMessage());
+                    printer.print("Ошибка при получении содержимого папок: " + error.getMessage(), true);
                 } else {
                     chatsInFolders.put(folderID, folder.includedChatIds);
                 }
@@ -110,7 +110,7 @@ public class UserBot implements AutoCloseable {
 
     public void showFolders() {
         for (int folderID : foldersInfo.keySet()) {
-            listener.print(folderID + ": " + foldersInfo.get(folderID));
+            printer.print(folderID + ": " + foldersInfo.get(folderID), true);
         }
     }
 
@@ -120,7 +120,7 @@ public class UserBot implements AutoCloseable {
         Long dateToUnix = ParseMaster.parseUnixDateEndOfDay(dateToString);
 
         if (dateFromUnix > dateToUnix) {
-            listener.print("Вторая дата не может быть больше первой");
+            printer.print("Вторая дата не может быть больше первой", true);
             return;
         }
 
@@ -128,24 +128,24 @@ public class UserBot implements AutoCloseable {
         chatHistoryHandler.setDateToUnix(dateToUnix);
 
         if (folderID == null) {
-            listener.print("Начинаю загрузку со всех каналов");
+            printer.print("Начинаю загрузку со всех каналов", true);
             for (Long channelID : supergroups.keySet()) {
                 loadChatHistory(channelID, dateFromUnix);
             }
             chatHistoryHandler.removeSurplus();
-            listener.print("Сообщения загружены. Всего: " + chatHistoryHandler.getSize() + " сообщ., соотв. заданным параметрам");
+            printer.print("Сообщения загружены. Всего: " + chatHistoryHandler.getSize() + " сообщ., соотв. заданным параметрам", true);
         } else {
             if (chatsInFolders.containsKey(folderID)) {
-                listener.print("Начинаю загрузку сообщений из папки " + foldersInfo.get(folderID));
+                printer.print("Начинаю загрузку сообщений из папки " + foldersInfo.get(folderID), true);
                 for (Long chatID : chatsInFolders.get(folderID)) {
                     if (supergroups.containsKey(chatID)) {
                         loadChatHistory(chatID, dateFromUnix);
                     }
                 }
                 chatHistoryHandler.removeSurplus();
-                listener.print("Сообщения загружены. Всего: " + chatHistoryHandler.getSize() + " сообщ., соотв. заданным параметрам");
+                printer.print("Сообщения загружены. Всего: " + chatHistoryHandler.getSize() + " сообщ., соотв. заданным параметрам", true);
             } else {
-                listener.print("Нет такой папки");
+                printer.print("Нет такой папки", true);
             }
         }
         chatHistoryHandler.setDateFromUnix(0L); // возврат значений по умолчанию
@@ -163,7 +163,7 @@ public class UserBot implements AutoCloseable {
             try {
                 Thread.sleep(Randomizer.giveNumber());
             } catch (InterruptedException e) {
-                listener.print(e.getMessage());
+                printer.print(e.getMessage(), true);
             }
             if (!chatHistoryHandler.historyIsEmpty()) {
                 fromMessageID = chatHistoryHandler.getLastMessageID();
@@ -187,25 +187,25 @@ public class UserBot implements AutoCloseable {
                 }
             }
         }
-        listener.print("Загрузка сообщений из " + chats.get(channelID).title + " закончена");
+        printer.print("Загрузка сообщений из " + chats.get(channelID).title + " закончена", true);
         chatHistoryHandler.zeroCounter();
     }
 
     public void clear() {
         notes.clear();
         chatHistoryHandler.clear();
-        listener.print("Загружено: " + chatHistoryHandler.getSize() + " cообщ.");
+        printer.print("Загружено: " + chatHistoryHandler.getSize() + " cообщ.", true);
     }
 
     public void writeHistory() {
         if (chatHistoryHandler.historyIsEmpty()) {
-            listener.print("Нечего записывать. Сначала нужно загрузить сообщения");
+            printer.print("Нечего записывать. Сначала нужно загрузить сообщения", true);
             return;
         }
-        listener.print("Начинаю запись в файл (" + chatHistoryHandler.getSize() + " сообщ. всего)");
+        printer.print("Начинаю запись в файл (" + chatHistoryHandler.getSize() + " сообщ. всего)", true);
         String channelName = "";
         while (!chatHistoryHandler.historyIsEmpty()) {
-            System.out.print(chatHistoryHandler.getSize() + " сообщен. осталось записать" + "\r");
+            printer.print(chatHistoryHandler.getSize() + " сообщен. осталось записать", false);
             TdApi.Message message = chatHistoryHandler.takeMessage();
             Integer msgDate = message.date;
             Long senderID = message.chatId;
@@ -215,7 +215,11 @@ public class UserBot implements AutoCloseable {
 
             if (!channelName.equals(senderName)) {
                 channelName = senderName;
-                messageRecorder.writeToFile(">>>>>>> Далее сообщения из канала " + channelName + System.lineSeparator());
+                try {
+                    messageRecorder.writeToFile(">>>>>>> Далее сообщения из канала " + channelName + System.lineSeparator());
+                } catch (IOException e) {
+                    printer.print("Ошибка при записи в файл: " + e.getMessage(), true);
+                }
             }
 
             TdApi.MessageContent messageContent = message.content;
@@ -224,39 +228,43 @@ public class UserBot implements AutoCloseable {
                     text = mt.text.text;
                 }
                 case TdApi.MessagePhoto mp -> {
-                    text = "Фото" + System.lineSeparator() + mp.caption.text;
+                    text = mp.caption.text;
                 }
                 case TdApi.MessageVideo mv -> {
-                    text = "Видео" + System.lineSeparator() + mv.caption.text;
+                    text = mv.caption.text;
                 }
                 case TdApi.MessageDocument md -> {
-                    text = "Документ" + System.lineSeparator() + md.caption.text;
+                    text = md.caption.text;
                 }
                 default -> {
-                    text = "Сообщение иного типа" + System.lineSeparator();
+                    text = "Сообщение без текста" + System.lineSeparator();
                 }
             }
             notes.put(msgID, new Note(msgDate, senderName, text));
             client.send(new TdApi.GetMessageLink(senderID, msgID, 0, true, true))
                     .whenCompleteAsync((link, error) -> {
                         if (error != null) {
-                            listener.print("Ошибка при запросе ссылки: " + error.getMessage());
+                            printer.print("Ошибка при запросе ссылки: " + error.getMessage(), true);
                         } else {
                             notes.get(msgID).setMsgLink(link.link);
-                            messageRecorder.writeToFile(notes.get(msgID).toString());
+                            try {
+                                messageRecorder.writeToFile(notes.get(msgID).toString());
+                            } catch (IOException e) {
+                                printer.print("Ошибка при записи в файл: " + e.getMessage(), true);
+                            }
                             notes.remove(msgID);
                         }
                     });
             try {
                 Thread.sleep(Randomizer.giveNumber());
             } catch (InterruptedException e) {
-                listener.print(e.getMessage());
+                printer.print(e.getMessage(), true);
             }
             if (chatHistoryHandler.historyIsEmpty()) {
                 break;
             }
         }
-        listener.print("Запись сообщений в файл закончена");
+        printer.print("Запись сообщений в файл закончена", true);
     }
 
     public SimpleTelegramClient getClient() {
@@ -269,7 +277,7 @@ public class UserBot implements AutoCloseable {
 
     public void logout() {
         client.send(new TdApi.LogOut()).thenAccept(ok -> {
-            listener.print("Вышел из аккаунта");
+            printer.print("Вышел из аккаунта", true);
             Status.setReadyToInteract(false);
         });
         stopBlockingExecutor();

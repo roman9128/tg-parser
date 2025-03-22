@@ -16,7 +16,6 @@ public class PropertyHandler {
     private static final int messagesToStop;
     private static final int messagesToDownload;
 
-
     static {
         try (InputStream inputStream = PropertyHandler.class.getClassLoader().getResourceAsStream(applicationPropertyFileName)) {
             if (inputStream != null) {

@@ -3,6 +3,7 @@ package rt.model.core;
 import it.tdlight.client.GenericResultHandler;
 import it.tdlight.client.Result;
 import it.tdlight.jni.TdApi;
+import rt.presenter.Printer;
 
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -13,8 +14,13 @@ public class ChatHistoryHandler implements GenericResultHandler<TdApi.Messages> 
     private final ConcurrentLinkedDeque<TdApi.Message> MESSAGES = new ConcurrentLinkedDeque<>();
     private final AtomicInteger countArrived = new AtomicInteger(0);
     private final AtomicLong lastMessageDate = new AtomicLong(0);
+    private final Printer printer;
     private Long dateFromUnix = 0L;
     private Long dateToUnix = Long.MAX_VALUE;
+
+    public ChatHistoryHandler(Printer printer) {
+        this.printer = printer;
+    }
 
     @Override
     public void onResult(Result result) {
@@ -27,9 +33,9 @@ public class ChatHistoryHandler implements GenericResultHandler<TdApi.Messages> 
                     MESSAGES.offer(message);
                 }
             }
-            System.out.print("Предварительно загружено " + MESSAGES.size() + " сообщен." + "\r");
+            printer.print("Предварительно загружено " + MESSAGES.size() + " сообщен.", false);
         } catch (Exception e) {
-            System.out.println("Ошибка при получении сообщений с сервера: " + e.getMessage());
+            printer.print("Ошибка при получении сообщений с сервера: " + e.getMessage(), true);
         }
     }
 
@@ -84,6 +90,6 @@ public class ChatHistoryHandler implements GenericResultHandler<TdApi.Messages> 
 
     protected void removeSurplus() {
         MESSAGES.removeIf(message -> message.date > dateToUnix);
-        System.out.println("Проверка на наличие неподходящих по дате сообщений выполнена");
+        printer.print("Проверка на наличие неподходящих по дате сообщений выполнена", true);
     }
 }

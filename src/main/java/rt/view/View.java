@@ -19,5 +19,5 @@ public interface View {
 
     void logout();
 
-    void print(String text);
+    void print(String text, boolean needNextLine);
 }

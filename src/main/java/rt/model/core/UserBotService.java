@@ -9,10 +9,12 @@ import it.tdlight.client.SimpleTelegramClientFactory;
 import it.tdlight.client.TDLibSettings;
 import rt.model.authentication.PhoneAuthentication;
 import rt.model.auxillaries.PropertyHandler;
-import rt.presenter.ServiceListener;
+import rt.presenter.Printer;
+import rt.presenter.ServiceHelper;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -20,7 +22,7 @@ public class UserBotService {
 
     private UserBot userBotInstance;
 
-    public void start(ServiceListener listener) throws Exception {
+    public void start(ServiceHelper helper) throws Exception {
         Init.init();
         Log.setLogMessageHandler(1, new Slf4JLogMessageHandler());
         try (SimpleTelegramClientFactory clientFactory = new SimpleTelegramClientFactory()) {
@@ -29,16 +31,16 @@ public class UserBotService {
             Path sessionPath = Paths.get("session");
             settings.setDatabaseDirectoryPath(sessionPath.resolve("data"));
             SimpleTelegramClientBuilder clientBuilder = clientFactory.builder(settings);
-            PhoneAuthentication authenticationData = new PhoneAuthentication();
-            try (UserBot userBot = new UserBot(clientBuilder, authenticationData, listener)) {
+            try (UserBot userBot = new UserBot(clientBuilder, new PhoneAuthentication(), helper)) {
                 userBotInstance = userBot;
-                listener.startInteractions();
+                helper.startInteractions();
                 userBotInstance.getClient().waitForExit();
                 Thread.sleep(100); // ожидание завершения соединения с TDLib
             } catch (Exception e) {
-                listener.print("Исключение в главном потоке: " + e.getMessage());
+                helper.print("Исключение в главном потоке: " + e.getMessage(), true);
             } finally {
-                listener.print("Основной поток закрыт");
+                helper.print("Завершаю работу...", true);
+                showEndingBar(helper);
             }
         }
     }
@@ -69,5 +71,18 @@ public class UserBotService {
         ExecutorService loader = Executors.newSingleThreadExecutor();
         loader.execute(() -> userBotInstance.loadChannelsHistory(folderIDString, dateFromString, dateToString));
         loader.shutdown();
+    }
+
+    private void showEndingBar(Printer printer) {
+        CompletableFuture.runAsync(() -> {
+            for (int i = 10; i > 0; i--) {
+                printer.print("*".repeat(i), false);
+                try {
+                    Thread.sleep(200);
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        });
     }
 }

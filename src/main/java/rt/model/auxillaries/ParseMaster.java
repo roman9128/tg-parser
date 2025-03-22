@@ -17,11 +17,16 @@ public class ParseMaster {
         try {
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy");
             LocalDate date = LocalDate.parse(dateString, formatter);
-            return date.atStartOfDay(ZoneId.systemDefault()).toEpochSecond();
+            if (date.isBefore(LocalDate.now())) {
+                return date.atStartOfDay(ZoneId.systemDefault()).toEpochSecond();
+            } else {
+                return LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toEpochSecond();
+            }
         } catch (Exception e) {
             return 0L;
         }
     }
+
     public static Long parseUnixDateEndOfDay(String dateString) {
         try {
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy");
@@ -31,6 +36,4 @@ public class ParseMaster {
             return Long.MAX_VALUE;
         }
     }
-
-
 }

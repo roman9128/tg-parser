@@ -6,7 +6,7 @@ import rt.view.View;
 import java.util.concurrent.CompletableFuture;
 
 
-public class Presenter implements ServiceListener {
+public class Presenter implements ServiceHelper {
 
     private final UserBotService service;
     private final View view;
@@ -58,7 +58,7 @@ public class Presenter implements ServiceListener {
     }
 
     @Override
-    public void print(String text) {
-        view.print(text);
+    public void print(String text, boolean needNextLine) {
+        view.print(text, needNextLine);
     }
 }

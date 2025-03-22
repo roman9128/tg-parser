@@ -5,11 +5,9 @@ import java.io.IOException;
 
 public class MessageRecorder {
 
-    public void writeToFile(String text) {
+    public void writeToFile(String text) throws IOException {
         try (FileWriter fileWriter = new FileWriter(PropertyHandler.getFilePath(), true)) {
             fileWriter.write(text);
-        } catch (IOException e) {
-            System.out.println("Ошибка при записи в файл: " + e.getMessage());
         }
     }
 }
