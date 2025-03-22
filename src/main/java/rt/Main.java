@@ -6,12 +6,8 @@ import rt.view.ConsoleUI;
 
 public class Main {
 
-    public static void main(String[] args) throws Exception {
-        ConsoleUI consoleUI = new ConsoleUI();
-        Presenter presenter = new Presenter(consoleUI);
-        UserBotService service = new UserBotService();
-        consoleUI.setPresenter(presenter);
-        presenter.setService(service);
-        service.start(presenter);
+    public static void main(String[] args) {
+        Presenter presenter = new Presenter(new UserBotService(), new ConsoleUI());
+        presenter.initService();
     }
 }

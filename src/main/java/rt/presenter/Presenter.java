@@ -1,24 +1,36 @@
 package rt.presenter;
 
 import rt.model.core.UserBotService;
-import rt.view.Interactable;
+import rt.view.View;
+
+import java.util.concurrent.CompletableFuture;
 
 
-public class Presenter {
+public class Presenter implements ServiceListener {
 
-    private UserBotService service;
-    private final Interactable interactable;
+    private final UserBotService service;
+    private final View view;
 
-    public Presenter(Interactable interactable) {
-        this.interactable = interactable;
-    }
-
-    public void setService(UserBotService service){
+    public Presenter(UserBotService service, View view) {
         this.service = service;
+        this.view = view;
+        view.setPresenter(this);
     }
 
-    public void start(){
-        interactable.start();
+    public void initService() {
+        try {
+            service.start(this);
+        } catch (Exception e) {
+            System.out.println("Ошибка при запуске приложения");
+        }
+    }
+
+    @Override
+    public void startInteractions() {
+        CompletableFuture.runAsync(view::startInteractions).exceptionally(e -> {
+            System.out.println("Ошибка в консольном потоке: " + e.getMessage());
+            return null;
+        });
     }
 
     public void show() {
@@ -45,7 +57,8 @@ public class Presenter {
         service.logout();
     }
 
-    public void print() {
-
+    @Override
+    public void print(String text) {
+        view.print(text);
     }
 }

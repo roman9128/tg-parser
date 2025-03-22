@@ -9,7 +9,7 @@ import it.tdlight.client.SimpleTelegramClientFactory;
 import it.tdlight.client.TDLibSettings;
 import rt.model.authentication.PhoneAuthentication;
 import rt.model.auxillaries.PropertyHandler;
-import rt.presenter.Presenter;
+import rt.presenter.ServiceListener;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -20,7 +20,7 @@ public class UserBotService {
 
     private UserBot userBotInstance;
 
-    public void start(Presenter presenter) throws Exception {
+    public void start(ServiceListener listener) throws Exception {
         Init.init();
         Log.setLogMessageHandler(1, new Slf4JLogMessageHandler());
         try (SimpleTelegramClientFactory clientFactory = new SimpleTelegramClientFactory()) {
@@ -30,15 +30,15 @@ public class UserBotService {
             settings.setDatabaseDirectoryPath(sessionPath.resolve("data"));
             SimpleTelegramClientBuilder clientBuilder = clientFactory.builder(settings);
             PhoneAuthentication authenticationData = new PhoneAuthentication();
-            try (UserBot userBot = new UserBot(clientBuilder, authenticationData)) {
+            try (UserBot userBot = new UserBot(clientBuilder, authenticationData, listener)) {
                 userBotInstance = userBot;
-                presenter.start();
+                listener.startInteractions();
                 userBotInstance.getClient().waitForExit();
                 Thread.sleep(100); // ожидание завершения соединения с TDLib
             } catch (Exception e) {
-                System.out.println("Исключение в главном потоке: " + e.getMessage());
+                listener.print("Исключение в главном потоке: " + e.getMessage());
             } finally {
-                System.out.println("Основной поток закрыт");
+                listener.print("Основной поток закрыт");
             }
         }
     }

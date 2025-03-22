@@ -1,7 +1,11 @@
 package rt.view;
 
-public interface Interactable {
-    void start();
+import rt.presenter.Presenter;
+
+public interface View {
+    void setPresenter(Presenter presenter);
+
+    void startInteractions();
 
     void show();
 
@@ -14,4 +18,6 @@ public interface Interactable {
     void stop();
 
     void logout();
+
+    void print(String text);
 }

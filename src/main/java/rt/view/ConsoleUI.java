@@ -5,71 +5,66 @@ import rt.model.core.Status;
 import rt.presenter.Presenter;
 
 import java.util.Scanner;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
-public class ConsoleUI implements Interactable {
+public class ConsoleUI implements View {
     private Presenter presenter;
-    private final ExecutorService executor = Executors.newSingleThreadExecutor();
 
+    @Override
     public void setPresenter(Presenter presenter) {
         this.presenter = presenter;
     }
 
     @Override
-    public void start() {
-        executor.submit(() -> {
+    public void startInteractions() {
+        while (true) {
+            if (Status.isReadyToInteract()) {
+                break;
+            } else {
+                try {
+                    Thread.sleep(1500);
+                } catch (InterruptedException e) {
+                    System.out.println(e.getMessage());
+                }
+            }
+        }
+        try (Scanner scanner = new Scanner(System.in)) {
             while (true) {
-                if (Status.isReadyToInteract()) {
-                    break;
-                } else {
-                    try {
-                        Thread.sleep(1500);
-                    } catch (InterruptedException e) {
-                        System.out.println(e.getMessage());
+                printMenu();
+                String[] args = {"", "", "", ""};
+                String[] userCommand = scanner.nextLine().split(" ", 4);
+                System.arraycopy(userCommand, 0, args, 0, userCommand.length);
+                switch (args[0]) {
+                    case "show" -> {
+                        show();
+                    }
+                    case "load" -> {
+                        load(args[1], args[2], args[3]);
+                    }
+                    case "write" -> {
+                        write();
+                    }
+                    case "clear" -> {
+                        clear();
+                    }
+                    case "stop" -> {
+                        stop();
+                        return;
+                    }
+                    case "logout" -> {
+                        logout();
+                        return;
+                    }
+                    default -> {
+                        System.out.println("неизвестная команда");
                     }
                 }
             }
-            try (Scanner scanner = new Scanner(System.in)) {
-                while (true) {
-                    printMenu();
-                    String[] args = {"", "", "", ""};
-                    String[] userCommand = scanner.nextLine().split(" ", 4);
-                    System.arraycopy(userCommand, 0, args, 0, userCommand.length);
-                    switch (args[0]) {
-                        case "show" -> {
-                            show();
-                        }
-                        case "load" -> {
-                            load(args[1], args[2], args[3]);
-                        }
-                        case "write" -> {
-                            write();
-                        }
-                        case "clear" -> {
-                            clear();
-                        }
-                        case "stop" -> {
-                            stop();
-                            return;
-                        }
-                        case "logout" -> {
-                            logout();
-                            return;
-                        }
-                        default -> {
-                            System.out.println("неизвестная команда");
-                        }
-                    }
-                }
-            } catch (Exception e) {
-                System.err.println("Исключение в консольном потоке: " + e.getMessage());
-            } finally {
-                stopConsoleThread();
-            }
-        });
+        } catch (Exception e) {
+            System.err.println("Исключение в консольном потоке: " + e.getMessage());
+        } finally {
+            System.out.println("Консольный поток закрыт");
+        }
     }
-
 
     @Override
     public void show() {
@@ -128,12 +123,8 @@ public class ConsoleUI implements Interactable {
                 + "|_________________________________" + System.lineSeparator());
     }
 
-    private void stopConsoleThread() {
-        if (!executor.isShutdown()) {
-            executor.shutdownNow();
-            System.out.println("Консольный поток закрыт");
-        } else {
-            System.out.println("Была попытка закрыть консольный поток повторно");
-        }
+    @Override
+    public void print(String text) {
+        System.out.println(text);
     }
 }
