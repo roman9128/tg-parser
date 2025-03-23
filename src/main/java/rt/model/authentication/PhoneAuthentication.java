@@ -2,7 +2,7 @@ package rt.model.authentication;
 
 import it.tdlight.client.AuthenticationData;
 import it.tdlight.client.AuthenticationSupplier;
-import it.tdlight.util.ScannerUtils;
+import rt.presenter.PrinterScanner;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
@@ -41,8 +41,10 @@ public class PhoneAuthentication implements AuthenticationSupplier<Authenticatio
     }
 
     private final AtomicReference<CompletableFuture<AuthenticationData>> state = new AtomicReference<>();
+    private final PrinterScanner printerScanner;
 
-    public PhoneAuthentication() {
+    public PhoneAuthentication(PrinterScanner printerScanner) {
+        this.printerScanner = printerScanner;
     }
 
     public CompletableFuture<AuthenticationData> askData() {
@@ -62,7 +64,7 @@ public class PhoneAuthentication implements AuthenticationSupplier<Authenticatio
                 try {
                     String phoneNumber;
                     do {
-                        phoneNumber = ScannerUtils.askParameter("new user", "enter your phone number");
+                        phoneNumber = printerScanner.askParameter("new user", "enter your phone number");
                     } while (phoneNumber.length() < 3);
                     cf.complete(new State(phoneNumber));
                 } catch (Throwable ex) {

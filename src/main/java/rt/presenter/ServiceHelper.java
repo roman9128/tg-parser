@@ -1,5 +1,5 @@
 package rt.presenter;
 
-public interface ServiceHelper extends Printer, Starter {
+public interface ServiceHelper extends PrinterScanner, Starter {
 
 }

@@ -1,10 +1,9 @@
-package rt.view;
+package rt.view.console;
 
 import rt.model.auxillaries.PropertyHandler;
 import rt.model.core.Status;
 import rt.presenter.Presenter;
-
-import java.util.Scanner;
+import rt.view.View;
 
 public class ConsoleUI implements View {
     private Presenter presenter;
@@ -27,11 +26,11 @@ public class ConsoleUI implements View {
                 }
             }
         }
-        try (Scanner scanner = new Scanner(System.in)) {
+        try {
             while (true) {
                 printMenu();
                 String[] args = {"", "", "", ""};
-                String[] userCommand = scanner.nextLine().split(" ", 4);
+                String[] userCommand = ConsoleInput.readLine().split(" ", 4);
                 System.arraycopy(userCommand, 0, args, 0, userCommand.length);
                 switch (args[0]) {
                     case "show" -> {
@@ -128,5 +127,10 @@ public class ConsoleUI implements View {
         } else {
             System.out.print(text + "\r");
         }
+    }
+
+    @Override
+    public String askParameter(String who, String question) {
+        return ConsoleInput.askParameter(who, question);
     }
 }

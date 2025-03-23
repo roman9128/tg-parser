@@ -61,4 +61,9 @@ public class Presenter implements ServiceHelper {
     public void print(String text, boolean needNextLine) {
         view.print(text, needNextLine);
     }
+
+    @Override
+    public String askParameter(String who, String question) {
+        return view.askParameter(who, question);
+    }
 }

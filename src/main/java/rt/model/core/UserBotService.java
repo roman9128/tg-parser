@@ -9,7 +9,7 @@ import it.tdlight.client.SimpleTelegramClientFactory;
 import it.tdlight.client.TDLibSettings;
 import rt.model.authentication.PhoneAuthentication;
 import rt.model.auxillaries.PropertyHandler;
-import rt.presenter.Printer;
+import rt.presenter.PrinterScanner;
 import rt.presenter.ServiceHelper;
 
 import java.nio.file.Path;
@@ -31,7 +31,8 @@ public class UserBotService {
             Path sessionPath = Paths.get("session");
             settings.setDatabaseDirectoryPath(sessionPath.resolve("data"));
             SimpleTelegramClientBuilder clientBuilder = clientFactory.builder(settings);
-            try (UserBot userBot = new UserBot(clientBuilder, new PhoneAuthentication(), helper)) {
+            PhoneAuthentication authData = new PhoneAuthentication(helper);
+            try (UserBot userBot = new UserBot(clientBuilder, authData, helper)) {
                 userBotInstance = userBot;
                 helper.startInteractions();
                 userBotInstance.getClient().waitForExit();
@@ -73,10 +74,10 @@ public class UserBotService {
         loader.shutdown();
     }
 
-    private void showEndingBar(Printer printer) {
+    private void showEndingBar(PrinterScanner printerScanner) {
         CompletableFuture.runAsync(() -> {
             for (int i = 10; i > 0; i--) {
-                printer.print("*".repeat(i), false);
+                printerScanner.print("*".repeat(i), false);
                 try {
                     Thread.sleep(200);
                 } catch (InterruptedException e) {

@@ -3,7 +3,7 @@ package rt.model.core;
 import it.tdlight.client.GenericResultHandler;
 import it.tdlight.client.Result;
 import it.tdlight.jni.TdApi;
-import rt.presenter.Printer;
+import rt.presenter.PrinterScanner;
 
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -14,12 +14,12 @@ public class ChatHistoryHandler implements GenericResultHandler<TdApi.Messages> 
     private final ConcurrentLinkedDeque<TdApi.Message> MESSAGES = new ConcurrentLinkedDeque<>();
     private final AtomicInteger countArrived = new AtomicInteger(0);
     private final AtomicLong lastMessageDate = new AtomicLong(0);
-    private final Printer printer;
+    private final PrinterScanner printerScanner;
     private Long dateFromUnix = 0L;
     private Long dateToUnix = Long.MAX_VALUE;
 
-    public ChatHistoryHandler(Printer printer) {
-        this.printer = printer;
+    public ChatHistoryHandler(PrinterScanner printerScanner) {
+        this.printerScanner = printerScanner;
     }
 
     @Override
@@ -31,9 +31,9 @@ public class ChatHistoryHandler implements GenericResultHandler<TdApi.Messages> 
             for (TdApi.Message message : messages.messages) {
                 MESSAGES.offer(message);
             }
-            printer.print("Предварительно загружено " + MESSAGES.size() + " сообщен.", false);
+            printerScanner.print("Предварительно загружено " + MESSAGES.size() + " сообщен.", false);
         } catch (Exception e) {
-            printer.print("Ошибка при получении сообщений с сервера: " + e.getMessage(), true);
+            printerScanner.print("Ошибка при получении сообщений с сервера: " + e.getMessage(), true);
         }
     }
 
@@ -88,6 +88,6 @@ public class ChatHistoryHandler implements GenericResultHandler<TdApi.Messages> 
 
     protected void removeSurplus() {
         MESSAGES.removeIf(message -> message.date < dateFromUnix || message.date > dateToUnix);
-        printer.print("Проверка на наличие неподходящих по дате сообщений выполнена", true);
+        printerScanner.print("Проверка на наличие неподходящих по дате сообщений выполнена", true);
     }
 }

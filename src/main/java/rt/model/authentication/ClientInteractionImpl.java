@@ -1,7 +1,7 @@
 package rt.model.authentication;
 
 import it.tdlight.client.*;
-import it.tdlight.util.ScannerUtils;
+import rt.presenter.PrinterScanner;
 
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
@@ -10,10 +10,12 @@ import java.util.concurrent.ExecutorService;
 public class ClientInteractionImpl implements ClientInteraction {
     private final ExecutorService blockingExecutor;
     private final Authenticable authenticable;
+    private final PrinterScanner printerScanner;
 
-    public ClientInteractionImpl(ExecutorService blockingExecutor, Authenticable authenticable) {
+    public ClientInteractionImpl(ExecutorService blockingExecutor, Authenticable authenticable, PrinterScanner printerScanner) {
         this.blockingExecutor = blockingExecutor;
         this.authenticable = authenticable;
+        this.printerScanner = printerScanner;
     }
 
     @Override
@@ -33,7 +35,7 @@ public class ClientInteractionImpl implements ClientInteraction {
             switch (parameter) {
                 case ASK_CODE:
                     question = "Enter authentication code";
-                    ParameterInfoCode codeInfo = (ParameterInfoCode)parameterInfo;
+                    ParameterInfoCode codeInfo = (ParameterInfoCode) parameterInfo;
                     question = question + "\n\tCode type: " + codeInfo.getType().getClass().getSimpleName().replace("AuthenticationCodeType", "");
                     if (codeInfo.getNextType() != null) {
                         question = question + "\n\tNext code type: " + codeInfo.getNextType().getClass().getSimpleName().replace("AuthenticationCodeType", "");
@@ -46,7 +48,7 @@ public class ClientInteractionImpl implements ClientInteraction {
                 default:
                     question = parameter.toString();
             }
-            String result = ScannerUtils.askParameter(who, question);
+            String result = printerScanner.askParameter(who, question);
             return trim ? result.trim() : Objects.requireNonNull(result);
         }, this.blockingExecutor);
     }

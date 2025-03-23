@@ -20,4 +20,7 @@ public interface View {
     void logout();
 
     void print(String text, boolean needNextLine);
+
+    String askParameter(String who, String question);
+
 }

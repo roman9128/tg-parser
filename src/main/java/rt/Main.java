@@ -2,7 +2,7 @@ package rt;
 
 import rt.model.core.UserBotService;
 import rt.presenter.Presenter;
-import rt.view.ConsoleUI;
+import rt.view.console.ConsoleUI;
 
 public class Main {
 
