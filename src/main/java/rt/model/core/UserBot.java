@@ -9,6 +9,8 @@ import rt.presenter.Printer;
 import rt.presenter.ServiceHelper;
 
 import java.io.IOException;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
@@ -118,9 +120,15 @@ public class UserBot implements AutoCloseable {
         Integer folderID = ParseMaster.parseInteger(folderIDString);
         Long dateFromUnix = ParseMaster.parseUnixDateStartOfDay(dateFromString);
         Long dateToUnix = ParseMaster.parseUnixDateEndOfDay(dateToString);
+        Long dateNowUnix = LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toEpochSecond();
 
         if (dateFromUnix > dateToUnix) {
             printer.print("Вторая дата не может быть больше первой", true);
+            return;
+        }
+
+        if(dateFromUnix > dateNowUnix){
+            printer.print("Этот день ещё не наступил", true);
             return;
         }
 
