@@ -34,14 +34,12 @@ public class UserBotService {
             PhoneAuthentication authData = new PhoneAuthentication(helper);
             try (UserBot userBot = new UserBot(clientBuilder, authData, helper)) {
                 userBotInstance = userBot;
-                helper.startInteractions();
                 userBotInstance.getClient().waitForExit();
                 Thread.sleep(100); // ожидание завершения соединения с TDLib
             } catch (Exception e) {
                 helper.print("Исключение в главном потоке: " + e.getMessage(), true);
             } finally {
                 helper.print("Завершаю работу...", true);
-                showEndingBar(helper);
             }
         }
     }
@@ -72,18 +70,5 @@ public class UserBotService {
         ExecutorService loader = Executors.newSingleThreadExecutor();
         loader.execute(() -> userBotInstance.loadChannelsHistory(folderIDString, dateFromString, dateToString));
         loader.shutdown();
-    }
-
-    private void showEndingBar(PrinterScanner printerScanner) {
-        CompletableFuture.runAsync(() -> {
-            for (int i = 10; i > 0; i--) {
-                printerScanner.print("*".repeat(i), false);
-                try {
-                    Thread.sleep(200);
-                } catch (InterruptedException e) {
-                    throw new RuntimeException(e);
-                }
-            }
-        });
     }
 }
