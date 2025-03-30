@@ -157,7 +157,7 @@ public class TgParser implements AutoCloseable {
                 loadChatHistory(channelID, dateFromUnix);
             }
             chatHistoryHandler.removeSurplus();
-            helper.print("Сообщения загружены. Всего: " + chatHistoryHandler.getSize() + " сообщ., соотв. заданным параметрам", true);
+            helper.print("Загрузка закончена. Всего: " + chatHistoryHandler.getSize() + " сообщ., соотв. заданным параметрам", true);
         } else {
             if (chatsInFolders.containsKey(folderID)) {
                 helper.print("Начинаю загрузку сообщений из папки " + foldersInfo.get(folderID), true);
@@ -167,7 +167,7 @@ public class TgParser implements AutoCloseable {
                     }
                 }
                 chatHistoryHandler.removeSurplus();
-                helper.print("Сообщения загружены. Всего: " + chatHistoryHandler.getSize() + " сообщ., соотв. заданным параметрам", true);
+                helper.print("Загрузка закончена. Всего: " + chatHistoryHandler.getSize() + " сообщ., соотв. заданным параметрам", true);
             } else {
                 helper.print("Нет такой папки", true);
             }
@@ -268,10 +268,10 @@ public class TgParser implements AutoCloseable {
             client.send(new TdApi.GetMessageLink(senderID, msgID, 0, true, true))
                     .whenCompleteAsync((link, error) -> {
                         if (error != null) {
+                            notes.get(msgID).setMsgLink("Ошибка при запросе ссылки");
                             helper.print("Ошибка при запросе ссылки: " + error.getMessage(), true);
-                            writeMsgToFile(msgID, "Ошибка при запросе ссылки");
                         } else {
-                            writeMsgToFile(msgID, link.link);
+                            notes.get(msgID).setMsgLink(link.link);
                         }
                     });
             try {
@@ -279,21 +279,22 @@ public class TgParser implements AutoCloseable {
             } catch (InterruptedException e) {
                 helper.print(e.getMessage(), true);
             }
+            writeMsgToFile(notes.get(msgID));
+            notes.remove(msgID);
             if (chatHistoryHandler.historyIsEmpty()) {
                 break;
             }
         }
         helper.print("Запись сообщений в файл закончена", true);
+        notes.clear();
     }
 
-    private void writeMsgToFile(Long msgID, String link) {
-        notes.get(msgID).setMsgLink(link);
+    private void writeMsgToFile(Note note) {
         try {
-            FileRecorder.writeToFile(PropertyHandler.getFilePath(), notes.get(msgID).toString());
+            FileRecorder.writeToFile(PropertyHandler.getFilePath(), note.toString());
         } catch (IOException e) {
             helper.print("Ошибка при записи в файл: " + e.getMessage(), true);
         }
-        notes.remove(msgID);
     }
 
     protected SimpleTelegramClient getClient() {
