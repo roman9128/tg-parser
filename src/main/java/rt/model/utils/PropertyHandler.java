@@ -1,4 +1,4 @@
-package rt.model.auxillaries;
+package rt.model.utils;
 
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -12,9 +12,9 @@ public class PropertyHandler {
     private static final String parsingPropertyFileName = "./parsing.properties";
     private static int apiID;
     private static String apiHash;
-    private static final String filePath;
-    private static final int messagesToStop;
-    private static final int messagesToDownload;
+    private static String filePath = "./chronic.txt"; // default value
+    private static int messagesToStop = 1000; // default value
+    private static int messagesToDownload = 100; // default value
 
     static {
         try (InputStream inputStream = PropertyHandler.class.getClassLoader().getResourceAsStream(applicationPropertyFileName)) {
@@ -31,8 +31,14 @@ public class PropertyHandler {
             filePath = properties.getProperty("file.path");
             messagesToStop = Integer.parseInt(properties.getProperty("stop.count"));
             messagesToDownload = Integer.parseInt(properties.getProperty("messages.count"));
-        } catch (IOException ex) {
-            throw new IllegalStateException("Failed to load parsing properties", ex);
+        } catch (IOException _) {
+            try {
+                FileRecorder.writeToFile(parsingPropertyFileName,
+                        "file.path=" + filePath + System.lineSeparator() +
+                                "stop.count=" + messagesToStop + System.lineSeparator() +
+                                "messages.count=" + messagesToDownload);
+            } catch (IOException _) {
+            }
         }
     }
 

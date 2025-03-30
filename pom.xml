@@ -25,7 +25,7 @@
     </dependencyManagement>
 
     <groupId>rt</groupId>
-    <artifactId>userBot-Parser</artifactId>
+    <artifactId>tgParser</artifactId>
     <version>1.0</version>
 
     <properties>

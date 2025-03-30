@@ -1,6 +1,6 @@
 package rt.view.console;
 
-import rt.model.auxillaries.PropertyHandler;
+import rt.model.utils.PropertyHandler;
 import rt.presenter.Presenter;
 import rt.view.View;
 

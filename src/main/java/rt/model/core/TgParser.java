@@ -4,8 +4,11 @@ import it.tdlight.client.*;
 import it.tdlight.jni.TdApi;
 import rt.model.authentication.ClientInteractionImpl;
 import rt.model.authentication.PhoneAuthentication;
-import rt.model.auxillaries.*;
-import rt.presenter.PrinterScanner;
+import rt.model.note.*;
+import rt.model.utils.FileRecorder;
+import rt.model.utils.ParseMaster;
+import rt.model.utils.PropertyHandler;
+import rt.model.utils.Randomizer;
 import rt.presenter.ServiceHelper;
 
 import java.io.IOException;
@@ -16,22 +19,22 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-public class UserBot implements AutoCloseable {
+public class TgParser implements AutoCloseable {
 
     private final SimpleTelegramClient client;
     private final ServiceHelper helper;
     private final ChatHistoryHandler chatHistoryHandler;
-    private final MessageRecorder messageRecorder = new MessageRecorder();
     private final ExecutorService blockingExecutor = Executors.newSingleThreadExecutor();
     private final ConcurrentMap<Long, TdApi.Chat> chats = new ConcurrentHashMap<>();
     private final ConcurrentMap<Integer, String> foldersInfo = new ConcurrentHashMap<>();
     private final ConcurrentMap<Integer, long[]> chatsInFolders = new ConcurrentHashMap<>();
     private final ConcurrentMap<Long, TdApi.Supergroup> supergroups = new ConcurrentHashMap<>();
     private final ConcurrentMap<Long, Note> notes = new ConcurrentHashMap<>();
+    private volatile boolean isReadyToLoadNewChannels = true;
 
-    public UserBot(SimpleTelegramClientBuilder clientBuilder,
-                   PhoneAuthentication authenticationData,
-                   ServiceHelper helper) {
+    protected TgParser(SimpleTelegramClientBuilder clientBuilder,
+                       PhoneAuthentication authenticationData,
+                       ServiceHelper helper) {
         this.helper = helper;
         this.chatHistoryHandler = new ChatHistoryHandler(helper);
         clientBuilder.addUpdateHandler(TdApi.UpdateAuthorizationState.class, this::onUpdateAuthorizationState);
@@ -65,7 +68,7 @@ public class UserBot implements AutoCloseable {
 
     private void onUpdateSuperGroup(TdApi.UpdateSupergroup updateSupergroup) {
         TdApi.Supergroup supergroup = updateSupergroup.supergroup;
-        if (supergroup.isChannel) {
+        if (isReadyToLoadNewChannels && supergroup.isChannel) {
             supergroups.put(transferChatID(supergroup.id), supergroup);
         }
     }
@@ -110,13 +113,26 @@ public class UserBot implements AutoCloseable {
         }
     }
 
-    public void showFolders() {
+    protected void showFolders() {
+        StringBuilder builder = new StringBuilder();
         for (int folderID : foldersInfo.keySet()) {
-            helper.print(folderID + ": " + foldersInfo.get(folderID), true);
+            builder
+                    .append(folderID)
+                    .append(": ")
+                    .append(foldersInfo.get(folderID))
+                    .append(System.lineSeparator());
+            for (Long channelId : chatsInFolders.get(folderID)) {
+                builder
+                        .append("\t")
+                        .append(" - ")
+                        .append(chats.get(channelId).title)
+                        .append(System.lineSeparator());
+            }
         }
+        helper.print(builder.toString(), true);
     }
 
-    public void loadChannelsHistory(String folderIDString, String dateFromString, String dateToString) {
+    protected void loadChannelsHistory(String folderIDString, String dateFromString, String dateToString) {
         Integer folderID = ParseMaster.parseInteger(folderIDString);
         Long dateFromUnix = ParseMaster.parseUnixDateStartOfDay(dateFromString);
         Long dateToUnix = ParseMaster.parseUnixDateEndOfDay(dateToString);
@@ -175,8 +191,8 @@ public class UserBot implements AutoCloseable {
             }
             if (!chatHistoryHandler.historyIsEmpty()) {
                 fromMessageID = chatHistoryHandler.getLastMessageID();
-                messagesLeft = messagesLeft - chatHistoryHandler.getCountArrived();
-                messagesToStop = messagesToStop - chatHistoryHandler.getCountArrived();
+                messagesLeft -= chatHistoryHandler.getCountArrived();
+                messagesToStop -= chatHistoryHandler.getCountArrived();
             }
             if (chatHistoryHandler.getCountArrived() == 0) {
                 break;
@@ -199,13 +215,13 @@ public class UserBot implements AutoCloseable {
         chatHistoryHandler.zeroCounter();
     }
 
-    public void clear() {
+    protected void clear() {
         notes.clear();
         chatHistoryHandler.clear();
         helper.print("Загружено: " + chatHistoryHandler.getSize() + " cообщ.", true);
     }
 
-    public void writeHistory() {
+    protected void writeHistory() {
         if (chatHistoryHandler.historyIsEmpty()) {
             helper.print("Нечего записывать. Сначала нужно загрузить сообщения", true);
             return;
@@ -224,7 +240,7 @@ public class UserBot implements AutoCloseable {
             if (!channelName.equals(senderName)) {
                 channelName = senderName;
                 try {
-                    messageRecorder.writeToFile(">>>>>>> Далее сообщения из канала " + channelName + System.lineSeparator());
+                    FileRecorder.writeToFile(PropertyHandler.getFilePath(), ">>>>>>> Далее сообщения из канала " + channelName + System.lineSeparator());
                 } catch (IOException e) {
                     helper.print("Ошибка при записи в файл: " + e.getMessage(), true);
                 }
@@ -236,13 +252,13 @@ public class UserBot implements AutoCloseable {
                     text = mt.text.text;
                 }
                 case TdApi.MessagePhoto mp -> {
-                    text = mp.caption.text;
+                    text = "Фото. " + mp.caption.text;
                 }
                 case TdApi.MessageVideo mv -> {
-                    text = mv.caption.text;
+                    text = "Видео. " + mv.caption.text;
                 }
                 case TdApi.MessageDocument md -> {
-                    text = md.caption.text;
+                    text = "Документ. " + md.caption.text;
                 }
                 default -> {
                     text = "Сообщение без текста" + System.lineSeparator();
@@ -253,14 +269,9 @@ public class UserBot implements AutoCloseable {
                     .whenCompleteAsync((link, error) -> {
                         if (error != null) {
                             helper.print("Ошибка при запросе ссылки: " + error.getMessage(), true);
+                            writeMsgToFile(msgID, "Ошибка при запросе ссылки");
                         } else {
-                            notes.get(msgID).setMsgLink(link.link);
-                            try {
-                                messageRecorder.writeToFile(notes.get(msgID).toString());
-                            } catch (IOException e) {
-                                helper.print("Ошибка при записи в файл: " + e.getMessage(), true);
-                            }
-                            notes.remove(msgID);
+                            writeMsgToFile(msgID, link.link);
                         }
                     });
             try {
@@ -275,7 +286,17 @@ public class UserBot implements AutoCloseable {
         helper.print("Запись сообщений в файл закончена", true);
     }
 
-    public SimpleTelegramClient getClient() {
+    private void writeMsgToFile(Long msgID, String link) {
+        notes.get(msgID).setMsgLink(link);
+        try {
+            FileRecorder.writeToFile(PropertyHandler.getFilePath(), notes.get(msgID).toString());
+        } catch (IOException e) {
+            helper.print("Ошибка при записи в файл: " + e.getMessage(), true);
+        }
+        notes.remove(msgID);
+    }
+
+    protected SimpleTelegramClient getClient() {
         return client;
     }
 
@@ -283,7 +304,7 @@ public class UserBot implements AutoCloseable {
         return -(1000000000000L + chatID);
     }
 
-    public void logout() {
+    protected void logout() {
         client.send(new TdApi.LogOut()).thenAccept(ok -> {
             helper.print("Вышел из аккаунта", true);
         });
@@ -298,5 +319,9 @@ public class UserBot implements AutoCloseable {
 
     private void stopBlockingExecutor() {
         blockingExecutor.shutdownNow();
+    }
+
+    protected void stopLoadingNewChannels() {
+        isReadyToLoadNewChannels = false;
     }
 }

@@ -21,7 +21,7 @@ public final class ConsoleInput {
                 if (scanner == null) {
                     scanner = new InputStreamReader(System.in);
                 }
-                System.out.printf("[%s] %s: ", displayName, question);
+                System.out.printf("%s: %s: ", displayName, question);
                 try {
                     return interruptibleReadLine(scanner);
                 } catch (InterruptedException | IOException e) {
@@ -30,6 +30,7 @@ public final class ConsoleInput {
             }
         }
     }
+
     public static String readLine() {
         synchronized (LOCK) {
             Console console = System.console();
@@ -52,7 +53,6 @@ public final class ConsoleInput {
         Pattern line = Pattern.compile("^(.*)\\R");
         Matcher matcher;
         boolean interrupted;
-
         StringBuilder result = new StringBuilder();
         int chr = -1;
         do {

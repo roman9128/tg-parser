@@ -1,4 +1,4 @@
-package rt.model.auxillaries;
+package rt.model.utils;
 
 import java.time.*;
 import java.time.format.DateTimeFormatter;

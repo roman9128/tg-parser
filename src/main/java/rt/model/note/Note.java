@@ -1,4 +1,4 @@
-package rt.model.auxillaries;
+package rt.model.note;
 
 import java.time.Instant;
 import java.time.LocalDateTime;

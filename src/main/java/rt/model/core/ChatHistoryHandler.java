@@ -26,12 +26,14 @@ public class ChatHistoryHandler implements GenericResultHandler<TdApi.Messages> 
     public void onResult(Result result) {
         try {
             TdApi.Messages messages = (TdApi.Messages) result.get();
+            if (messages.messages.length == 0) {
+                return;
+            }
             countArrived.set(messages.totalCount);
             lastMessageDate.set(messages.messages[messages.messages.length - 1].date);
             for (TdApi.Message message : messages.messages) {
                 MESSAGES.offer(message);
             }
-            printerScanner.print("Предварительно загружено " + MESSAGES.size() + " сообщен.", false);
         } catch (Exception e) {
             printerScanner.print("Ошибка при получении сообщений с сервера: " + e.getMessage(), true);
         }

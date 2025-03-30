@@ -1,17 +1,16 @@
 package rt.presenter;
 
-import rt.model.core.UserBotService;
+import rt.model.core.AppService;
 import rt.view.View;
 
 import java.util.concurrent.CompletableFuture;
 
-
 public class Presenter implements ServiceHelper {
 
-    private final UserBotService service;
+    private final AppService service;
     private final View view;
 
-    public Presenter(UserBotService service, View view) {
+    public Presenter(AppService service, View view) {
         this.service = service;
         this.view = view;
         view.setPresenter(this);
