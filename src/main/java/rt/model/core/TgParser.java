@@ -157,7 +157,6 @@ public class TgParser implements AutoCloseable {
                 loadChatHistory(channelID, dateFromUnix);
             }
             chatHistoryHandler.removeSurplus();
-            helper.print("Загрузка закончена. Всего: " + chatHistoryHandler.getSize() + " сообщ., соотв. заданным параметрам", true);
         } else {
             if (chatsInFolders.containsKey(folderID)) {
                 helper.print("Начинаю загрузку сообщений из папки " + foldersInfo.get(folderID), true);
@@ -167,7 +166,6 @@ public class TgParser implements AutoCloseable {
                     }
                 }
                 chatHistoryHandler.removeSurplus();
-                helper.print("Загрузка закончена. Всего: " + chatHistoryHandler.getSize() + " сообщ., соотв. заданным параметрам", true);
             } else {
                 helper.print("Нет такой папки", true);
             }
@@ -189,11 +187,12 @@ public class TgParser implements AutoCloseable {
             } catch (InterruptedException e) {
                 helper.print(e.getMessage(), true);
             }
-            if (!chatHistoryHandler.historyIsEmpty()) {
+            if (!chatHistoryHandler.noReceivedMsgs()) {
                 fromMessageID = chatHistoryHandler.getLastMessageID();
                 messagesLeft -= chatHistoryHandler.getCountArrived();
                 messagesToStop -= chatHistoryHandler.getCountArrived();
             }
+            helper.print(chatHistoryHandler.getAmountOfReceivedMsg() + " сообщ. предварительно загружено", false);
             if (chatHistoryHandler.getCountArrived() == 0) {
                 break;
             }
@@ -218,18 +217,18 @@ public class TgParser implements AutoCloseable {
     protected void clear() {
         notes.clear();
         chatHistoryHandler.clear();
-        helper.print("Загружено: " + chatHistoryHandler.getSize() + " cообщ.", true);
+        helper.print("Загруженные сообщения удалены", true);
     }
 
     protected void writeHistory() {
-        if (chatHistoryHandler.historyIsEmpty()) {
+        if (chatHistoryHandler.noReadyToSendMsgs()) {
             helper.print("Нечего записывать. Сначала нужно загрузить сообщения", true);
             return;
         }
-        helper.print("Начинаю запись в файл (" + chatHistoryHandler.getSize() + " сообщ. всего)", true);
+        helper.print("Начинаю запись в файл (" + chatHistoryHandler.getAmountOfReadyToSendMsg() + " сообщ. всего)", true);
         String channelName = "";
-        while (!chatHistoryHandler.historyIsEmpty()) {
-            helper.print(chatHistoryHandler.getSize() + " сообщен. осталось записать", false);
+        while (!chatHistoryHandler.noReadyToSendMsgs()) {
+            helper.print(chatHistoryHandler.getAmountOfReadyToSendMsg() + " сообщен. осталось записать", false);
             TdApi.Message message = chatHistoryHandler.takeMessage();
             Integer msgDate = message.date;
             Long senderID = message.chatId;
@@ -281,7 +280,7 @@ public class TgParser implements AutoCloseable {
             }
             writeMsgToFile(notes.get(msgID));
             notes.remove(msgID);
-            if (chatHistoryHandler.historyIsEmpty()) {
+            if (chatHistoryHandler.noReadyToSendMsgs()) {
                 break;
             }
         }
