@@ -15,13 +15,8 @@ public class ChatHistoryHandler implements GenericResultHandler<TdApi.Messages> 
     private final ConcurrentLinkedDeque<TdApi.Message> READY_TO_SEND_MESSAGES = new ConcurrentLinkedDeque<>();
     private final AtomicInteger countArrived = new AtomicInteger(0);
     private final AtomicLong lastMessageDate = new AtomicLong(0);
-    private final PrinterScanner printerScanner;
     private Long dateFromUnix = 0L;
     private Long dateToUnix = Long.MAX_VALUE;
-
-    public ChatHistoryHandler(PrinterScanner printerScanner) {
-        this.printerScanner = printerScanner;
-    }
 
     @Override
     public void onResult(Result result) {
@@ -35,14 +30,15 @@ public class ChatHistoryHandler implements GenericResultHandler<TdApi.Messages> 
             for (TdApi.Message message : messages.messages) {
                 RECEIVED_MESSAGES.offer(message);
             }
-        } catch (Exception e) {
-            printerScanner.print("Ошибка при получении сообщений с сервера: " + e.getMessage(), true);
+        } catch (Exception _) {
+            // just keep working
         }
     }
 
     protected Long getLastMessageID() {
-        assert RECEIVED_MESSAGES.peekLast() != null;
-        return RECEIVED_MESSAGES.peekLast().id;
+        if (RECEIVED_MESSAGES.peekLast() != null) {
+            return RECEIVED_MESSAGES.peekLast().id;
+        } else return 0L;
     }
 
     protected Long getLastMessageDate() {
@@ -50,11 +46,9 @@ public class ChatHistoryHandler implements GenericResultHandler<TdApi.Messages> 
     }
 
     protected Long getLastMessageChatID() {
-        try {
+        if (RECEIVED_MESSAGES.peekLast() != null) {
             return RECEIVED_MESSAGES.peekLast().chatId;
-        } catch (NullPointerException e) {
-            return 0L;
-        }
+        } else return 0L;
     }
 
     protected int getCountArrived() {
@@ -69,11 +63,11 @@ public class ChatHistoryHandler implements GenericResultHandler<TdApi.Messages> 
         return READY_TO_SEND_MESSAGES.pollFirst();
     }
 
-    protected boolean noReceivedMsgs() {
+    protected boolean noReceivedMsg() {
         return RECEIVED_MESSAGES.isEmpty();
     }
 
-    protected boolean noReadyToSendMsgs() {
+    protected boolean noReadyToSendMsg() {
         return READY_TO_SEND_MESSAGES.isEmpty();
     }
 
@@ -81,7 +75,7 @@ public class ChatHistoryHandler implements GenericResultHandler<TdApi.Messages> 
         return READY_TO_SEND_MESSAGES.size();
     }
 
-    protected int getAmountOfReceivedMsg(){
+    protected int getAmountOfReceivedMsg() {
         return RECEIVED_MESSAGES.size();
     }
 
@@ -99,8 +93,10 @@ public class ChatHistoryHandler implements GenericResultHandler<TdApi.Messages> 
 
     protected void removeSurplus() {
         RECEIVED_MESSAGES.removeIf(message -> message.date < dateFromUnix || message.date > dateToUnix);
+    }
+
+    protected void getMsgReadyToSend() {
         READY_TO_SEND_MESSAGES.addAll(RECEIVED_MESSAGES);
         RECEIVED_MESSAGES.clear();
-        printerScanner.print("Всего загружено " + getAmountOfReadyToSendMsg() + " сообщ., соотв. заданным параметрам", true);
     }
 }

@@ -36,7 +36,7 @@ public class TgParser implements AutoCloseable {
                        PhoneAuthentication authenticationData,
                        ServiceHelper helper) {
         this.helper = helper;
-        this.chatHistoryHandler = new ChatHistoryHandler(helper);
+        this.chatHistoryHandler = new ChatHistoryHandler();
         clientBuilder.addUpdateHandler(TdApi.UpdateAuthorizationState.class, this::onUpdateAuthorizationState);
         clientBuilder.addUpdateHandler(TdApi.UpdateNewChat.class, this::onUpdateChat);
         clientBuilder.addUpdateHandler(TdApi.UpdateSupergroup.class, this::onUpdateSuperGroup);
@@ -142,7 +142,6 @@ public class TgParser implements AutoCloseable {
             helper.print("Вторая дата не может быть больше первой", true);
             return;
         }
-
         if (dateFromUnix > dateNowUnix) {
             helper.print("Этот день ещё не наступил", true);
             return;
@@ -156,7 +155,6 @@ public class TgParser implements AutoCloseable {
             for (Long channelID : supergroups.keySet()) {
                 loadChatHistory(channelID, dateFromUnix);
             }
-            chatHistoryHandler.removeSurplus();
         } else {
             if (chatsInFolders.containsKey(folderID)) {
                 helper.print("Начинаю загрузку сообщений из папки " + foldersInfo.get(folderID), true);
@@ -165,13 +163,14 @@ public class TgParser implements AutoCloseable {
                         loadChatHistory(chatID, dateFromUnix);
                     }
                 }
-                chatHistoryHandler.removeSurplus();
             } else {
                 helper.print("Нет такой папки", true);
+                return;
             }
         }
-        chatHistoryHandler.setDateFromUnix(0L); // возврат значений по умолчанию
-        chatHistoryHandler.setDateToUnix(Long.MAX_VALUE);
+        chatHistoryHandler.removeSurplus();
+        chatHistoryHandler.getMsgReadyToSend();
+        helper.print("Всего загружено " + chatHistoryHandler.getAmountOfReadyToSendMsg() + " сообщ., соотв. заданным параметрам", true);
     }
 
     private void loadChatHistory(Long channelID, Long dateFromUnix) {
@@ -187,7 +186,7 @@ public class TgParser implements AutoCloseable {
             } catch (InterruptedException e) {
                 helper.print(e.getMessage(), true);
             }
-            if (!chatHistoryHandler.noReceivedMsgs()) {
+            if (!chatHistoryHandler.noReceivedMsg()) {
                 fromMessageID = chatHistoryHandler.getLastMessageID();
                 messagesLeft -= chatHistoryHandler.getCountArrived();
                 messagesToStop -= chatHistoryHandler.getCountArrived();
@@ -221,13 +220,13 @@ public class TgParser implements AutoCloseable {
     }
 
     protected void writeHistory() {
-        if (chatHistoryHandler.noReadyToSendMsgs()) {
+        if (chatHistoryHandler.noReadyToSendMsg()) {
             helper.print("Нечего записывать. Сначала нужно загрузить сообщения", true);
             return;
         }
         helper.print("Начинаю запись в файл (" + chatHistoryHandler.getAmountOfReadyToSendMsg() + " сообщ. всего)", true);
         String channelName = "";
-        while (!chatHistoryHandler.noReadyToSendMsgs()) {
+        while (!chatHistoryHandler.noReadyToSendMsg()) {
             helper.print(chatHistoryHandler.getAmountOfReadyToSendMsg() + " сообщен. осталось записать", false);
             TdApi.Message message = chatHistoryHandler.takeMessage();
             Integer msgDate = message.date;
@@ -241,7 +240,7 @@ public class TgParser implements AutoCloseable {
                 try {
                     FileRecorder.writeToFile(PropertyHandler.getFilePath(), ">>>>>>> Далее сообщения из канала " + channelName + System.lineSeparator());
                 } catch (IOException e) {
-                    helper.print("Ошибка при записи в файл: " + e.getMessage(), true);
+                    helper.print("Ошибка при записи: " + e.getMessage(), true);
                 }
             }
 
@@ -267,7 +266,7 @@ public class TgParser implements AutoCloseable {
             client.send(new TdApi.GetMessageLink(senderID, msgID, 0, true, true))
                     .whenCompleteAsync((link, error) -> {
                         if (error != null) {
-                            notes.get(msgID).setMsgLink("Ошибка при запросе ссылки");
+                            notes.get(msgID).setMsgLink("Не удалось получить ссылку");
                             helper.print("Ошибка при запросе ссылки: " + error.getMessage(), true);
                         } else {
                             notes.get(msgID).setMsgLink(link.link);
@@ -280,7 +279,7 @@ public class TgParser implements AutoCloseable {
             }
             writeMsgToFile(notes.get(msgID));
             notes.remove(msgID);
-            if (chatHistoryHandler.noReadyToSendMsgs()) {
+            if (chatHistoryHandler.noReadyToSendMsg()) {
                 break;
             }
         }
