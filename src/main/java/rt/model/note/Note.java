@@ -7,12 +7,16 @@ import java.time.format.DateTimeFormatter;
 import java.util.Locale;
 
 public class Note {
-    private final LocalDateTime msgTime;
+    private final Long messageID;
+    private final Long senderID;
     private final String senderName;
+    private final LocalDateTime msgTime;
     private String msgLink;
     private final String text;
 
-    public Note(Integer msgTimeUNIX, String senderName, String text) {
+    protected Note(Long messageID, Long senderID, Integer msgTimeUNIX, String senderName, String text) {
+        this.messageID = messageID;
+        this.senderID = senderID;
         this.msgTime = convertDateTime(msgTimeUNIX);
         this.senderName = senderName;
         this.text = text;
@@ -30,6 +34,18 @@ public class Note {
     private String getStringDateTime(LocalDateTime dateTime) {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd MMMM yyyy, HH:mm", Locale.getDefault());
         return dateTime.format(formatter);
+    }
+
+    public Long getMessageID() {
+        return messageID;
+    }
+
+    public Long getSenderID() {
+        return senderID;
+    }
+
+    public String getSenderName() {
+        return senderName;
     }
 
     @Override

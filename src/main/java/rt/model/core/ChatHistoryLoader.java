@@ -3,16 +3,14 @@ package rt.model.core;
 import it.tdlight.client.GenericResultHandler;
 import it.tdlight.client.Result;
 import it.tdlight.jni.TdApi;
-import rt.presenter.PrinterScanner;
 
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
-public class ChatHistoryHandler implements GenericResultHandler<TdApi.Messages> {
+public class ChatHistoryLoader implements GenericResultHandler<TdApi.Messages> {
 
     private final ConcurrentLinkedDeque<TdApi.Message> RECEIVED_MESSAGES = new ConcurrentLinkedDeque<>();
-    private final ConcurrentLinkedDeque<TdApi.Message> READY_TO_SEND_MESSAGES = new ConcurrentLinkedDeque<>();
     private final AtomicInteger countArrived = new AtomicInteger(0);
     private final AtomicLong lastMessageDate = new AtomicLong(0);
     private Long dateFromUnix = 0L;
@@ -60,19 +58,11 @@ public class ChatHistoryHandler implements GenericResultHandler<TdApi.Messages> 
     }
 
     protected TdApi.Message takeMessage() {
-        return READY_TO_SEND_MESSAGES.pollFirst();
+        return RECEIVED_MESSAGES.pollFirst();
     }
 
-    protected boolean noReceivedMsg() {
+    protected boolean isEmpty() {
         return RECEIVED_MESSAGES.isEmpty();
-    }
-
-    protected boolean noReadyToSendMsg() {
-        return READY_TO_SEND_MESSAGES.isEmpty();
-    }
-
-    protected int getAmountOfReadyToSendMsg() {
-        return READY_TO_SEND_MESSAGES.size();
     }
 
     protected int getAmountOfReceivedMsg() {
@@ -87,16 +77,7 @@ public class ChatHistoryHandler implements GenericResultHandler<TdApi.Messages> 
         this.dateToUnix = dateToUnix;
     }
 
-    protected void clear() {
-        READY_TO_SEND_MESSAGES.clear();
-    }
-
     protected void removeSurplus() {
         RECEIVED_MESSAGES.removeIf(message -> message.date < dateFromUnix || message.date > dateToUnix);
-    }
-
-    protected void getMsgReadyToSend() {
-        READY_TO_SEND_MESSAGES.addAll(RECEIVED_MESSAGES);
-        RECEIVED_MESSAGES.clear();
     }
 }

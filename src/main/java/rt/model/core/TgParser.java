@@ -23,20 +23,19 @@ public class TgParser implements AutoCloseable {
 
     private final SimpleTelegramClient client;
     private final ServiceHelper helper;
-    private final ChatHistoryHandler chatHistoryHandler;
+    private final ChatHistoryLoader chatHistoryLoader = new ChatHistoryLoader();
     private final ExecutorService blockingExecutor = Executors.newSingleThreadExecutor();
     private final ConcurrentMap<Long, TdApi.Chat> chats = new ConcurrentHashMap<>();
     private final ConcurrentMap<Integer, String> foldersInfo = new ConcurrentHashMap<>();
     private final ConcurrentMap<Integer, long[]> chatsInFolders = new ConcurrentHashMap<>();
     private final ConcurrentMap<Long, TdApi.Supergroup> supergroups = new ConcurrentHashMap<>();
-    private final ConcurrentMap<Long, Note> notes = new ConcurrentHashMap<>();
+    private final NoteManager noteManager = new NoteManager();
     private volatile boolean isReadyToLoadNewChannels = true;
 
     protected TgParser(SimpleTelegramClientBuilder clientBuilder,
                        PhoneAuthentication authenticationData,
                        ServiceHelper helper) {
         this.helper = helper;
-        this.chatHistoryHandler = new ChatHistoryHandler();
         clientBuilder.addUpdateHandler(TdApi.UpdateAuthorizationState.class, this::onUpdateAuthorizationState);
         clientBuilder.addUpdateHandler(TdApi.UpdateNewChat.class, this::onUpdateChat);
         clientBuilder.addUpdateHandler(TdApi.UpdateSupergroup.class, this::onUpdateSuperGroup);
@@ -138,7 +137,7 @@ public class TgParser implements AutoCloseable {
         Long dateToUnix = ParseMaster.parseUnixDateEndOfDay(dateToString);
         Long dateNowUnix = LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toEpochSecond();
 
-        if (dateFromUnix > dateToUnix) {
+        if (dateFromUnix >= dateToUnix) {
             helper.print("Вторая дата не может быть больше первой", true);
             return;
         }
@@ -147,8 +146,8 @@ public class TgParser implements AutoCloseable {
             return;
         }
 
-        chatHistoryHandler.setDateFromUnix(dateFromUnix);
-        chatHistoryHandler.setDateToUnix(dateToUnix);
+        chatHistoryLoader.setDateFromUnix(dateFromUnix);
+        chatHistoryLoader.setDateToUnix(dateToUnix);
 
         if (folderID == null) {
             helper.print("Начинаю загрузку со всех каналов", true);
@@ -168,9 +167,9 @@ public class TgParser implements AutoCloseable {
                 return;
             }
         }
-        chatHistoryHandler.removeSurplus();
-        chatHistoryHandler.getMsgReadyToSend();
-        helper.print("Всего загружено " + chatHistoryHandler.getAmountOfReadyToSendMsg() + " сообщ., соотв. заданным параметрам", true);
+        chatHistoryLoader.removeSurplus();
+        prepareNotes();
+        helper.print("Всего загружено " + noteManager.getSize() + " сообщ., соотв. заданным параметрам", true);
     }
 
     private void loadChatHistory(Long channelID, Long dateFromUnix) {
@@ -180,27 +179,27 @@ public class TgParser implements AutoCloseable {
         while (true) {
             client.send(
                     new TdApi.GetChatHistory(channelID, fromMessageID, 0, 50, false),
-                    chatHistoryHandler);
+                    chatHistoryLoader);
             try {
                 Thread.sleep(Randomizer.giveNumber());
             } catch (InterruptedException e) {
                 helper.print(e.getMessage(), true);
             }
-            if (!chatHistoryHandler.noReceivedMsg()) {
-                fromMessageID = chatHistoryHandler.getLastMessageID();
-                messagesLeft -= chatHistoryHandler.getCountArrived();
-                messagesToStop -= chatHistoryHandler.getCountArrived();
+            if (!chatHistoryLoader.isEmpty()) {
+                fromMessageID = chatHistoryLoader.getLastMessageID();
+                messagesLeft -= chatHistoryLoader.getCountArrived();
+                messagesToStop -= chatHistoryLoader.getCountArrived();
             }
-            helper.print(chatHistoryHandler.getAmountOfReceivedMsg() + " сообщ. предварительно загружено", false);
-            if (chatHistoryHandler.getCountArrived() == 0) {
+            helper.print(chatHistoryLoader.getAmountOfReceivedMsg() + " сообщ. предварительно загружено", false);
+            if (chatHistoryLoader.getCountArrived() == 0) {
                 break;
             }
             if (messagesToStop < 1) {
                 break;
             }
             if (dateFromUnix != 0L) {
-                if (channelID.equals(chatHistoryHandler.getLastMessageChatID())
-                        && chatHistoryHandler.getLastMessageDate() <= dateFromUnix) {
+                if (channelID.equals(chatHistoryLoader.getLastMessageChatID())
+                        && chatHistoryLoader.getLastMessageDate() <= dateFromUnix) {
                     break;
                 }
             } else {
@@ -210,30 +209,25 @@ public class TgParser implements AutoCloseable {
             }
         }
         helper.print("Загрузка сообщений из " + chats.get(channelID).title + " закончена", true);
-        chatHistoryHandler.zeroCounter();
+        chatHistoryLoader.zeroCounter();
     }
 
     protected void clear() {
-        notes.clear();
-        chatHistoryHandler.clear();
+        noteManager.clear();
         helper.print("Загруженные сообщения удалены", true);
     }
 
     protected void writeHistory() {
-        if (chatHistoryHandler.noReadyToSendMsg()) {
+        if (noteManager.isEmpty()) {
             helper.print("Нечего записывать. Сначала нужно загрузить сообщения", true);
             return;
         }
-        helper.print("Начинаю запись в файл (" + chatHistoryHandler.getAmountOfReadyToSendMsg() + " сообщ. всего)", true);
+        helper.print("Начинаю запись в файл (" + noteManager.getSize() + " сообщ. всего)", true);
         String channelName = "";
-        while (!chatHistoryHandler.noReadyToSendMsg()) {
-            helper.print(chatHistoryHandler.getAmountOfReadyToSendMsg() + " сообщен. осталось записать", false);
-            TdApi.Message message = chatHistoryHandler.takeMessage();
-            Integer msgDate = message.date;
-            Long senderID = message.chatId;
-            Long msgID = message.id;
-            String senderName = chats.get(senderID).title;
-            String text = "";
+        while (!noteManager.isEmpty()) {
+            helper.print(noteManager.getSize() + " сообщен. осталось записать", false);
+            Note note = noteManager.take();
+            String senderName = note.getSenderName();
 
             if (!channelName.equals(senderName)) {
                 channelName = senderName;
@@ -244,55 +238,21 @@ public class TgParser implements AutoCloseable {
                 }
             }
 
-            TdApi.MessageContent messageContent = message.content;
-            switch (messageContent) {
-                case TdApi.MessageText mt -> {
-                    text = mt.text.text;
-                }
-                case TdApi.MessagePhoto mp -> {
-                    text = "Фото. " + mp.caption.text;
-                }
-                case TdApi.MessageVideo mv -> {
-                    text = "Видео. " + mv.caption.text;
-                }
-                case TdApi.MessageDocument md -> {
-                    text = "Документ. " + md.caption.text;
-                }
-                default -> {
-                    text = "Сообщение без текста" + System.lineSeparator();
-                }
-            }
-            notes.put(msgID, new Note(msgDate, senderName, text));
-            client.send(new TdApi.GetMessageLink(senderID, msgID, 0, true, true))
-                    .whenCompleteAsync((link, error) -> {
-                        if (error != null) {
-                            notes.get(msgID).setMsgLink("Не удалось получить ссылку");
-                            helper.print("Ошибка при запросе ссылки: " + error.getMessage(), true);
-                        } else {
-                            notes.get(msgID).setMsgLink(link.link);
-                        }
-                    });
+            Note noteWithLink = getMsgLink(note);
+
             try {
                 Thread.sleep(Randomizer.giveNumber());
             } catch (InterruptedException e) {
                 helper.print(e.getMessage(), true);
             }
-            writeMsgToFile(notes.get(msgID));
-            notes.remove(msgID);
-            if (chatHistoryHandler.noReadyToSendMsg()) {
-                break;
+
+            try {
+                FileRecorder.writeToFile(PropertyHandler.getFilePath(), noteWithLink.toString());
+            } catch (IOException e) {
+                helper.print("Ошибка при записи в файл: " + e.getMessage(), true);
             }
         }
         helper.print("Запись сообщений в файл закончена", true);
-        notes.clear();
-    }
-
-    private void writeMsgToFile(Note note) {
-        try {
-            FileRecorder.writeToFile(PropertyHandler.getFilePath(), note.toString());
-        } catch (IOException e) {
-            helper.print("Ошибка при записи в файл: " + e.getMessage(), true);
-        }
     }
 
     protected SimpleTelegramClient getClient() {
@@ -322,5 +282,26 @@ public class TgParser implements AutoCloseable {
 
     protected void stopLoadingNewChannels() {
         isReadyToLoadNewChannels = false;
+    }
+
+    private void prepareNotes() {
+        while (!chatHistoryLoader.isEmpty()) {
+            TdApi.Message message = chatHistoryLoader.takeMessage();
+            String senderName = chats.get(message.chatId).title;
+            noteManager.createNote(message, senderName);
+        }
+    }
+
+    private Note getMsgLink(Note note) {
+        client.send(new TdApi.GetMessageLink(note.getSenderID(), note.getMessageID(), 0, true, true))
+                .whenCompleteAsync((link, error) -> {
+                    if (error != null) {
+                        note.setMsgLink("Не удалось получить ссылку");
+                        helper.print("Ошибка при запросе ссылки: " + error.getMessage(), true);
+                    } else {
+                        note.setMsgLink(link.link);
+                    }
+                });
+        return note;
     }
 }
