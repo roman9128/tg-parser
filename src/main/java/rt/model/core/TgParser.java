@@ -52,6 +52,7 @@ public class TgParser implements AutoCloseable {
             getChats();
             getChannels();
             getFoldersInfo();
+            stopBlockingExecutor();
             helper.startInteractions();
         } else if (authorizationState instanceof TdApi.AuthorizationStateClosed) {
             helper.print("Соединение закрыто", true);
@@ -113,6 +114,7 @@ public class TgParser implements AutoCloseable {
     }
 
     protected void showFolders() {
+        stopLoadingNewChannels();
         StringBuilder builder = new StringBuilder();
         for (int folderID : foldersInfo.keySet()) {
             builder
@@ -132,6 +134,7 @@ public class TgParser implements AutoCloseable {
     }
 
     protected void loadChannelsHistory(String folderIDString, String dateFromString, String dateToString) {
+        stopLoadingNewChannels();
         Integer folderID = ParseMaster.parseInteger(folderIDString);
         Long dateFromUnix = ParseMaster.parseUnixDateStartOfDay(dateFromString);
         Long dateToUnix = ParseMaster.parseUnixDateEndOfDay(dateToString);
@@ -212,23 +215,53 @@ public class TgParser implements AutoCloseable {
         chatHistoryLoader.zeroCounter();
     }
 
+    protected void findNotes(String[] args) {
+        if (args.length == 0) {
+            helper.print("Не введены слова для поиска", true);
+            return;
+        }
+        if (noteManager.isEmpty()) {
+            helper.print("Сначала нужно загрузить сообщения", true);
+            return;
+        }
+        noteManager.findNotes(args);
+        helper.print("Всего найдено сообщений, содержащих указанные слова: " + noteManager.getSuitableNotesQuantity(), true);
+        helper.print("Чтобы загрузить отобранные сообщения, введи команду write x", true);
+    }
+
     protected void clear() {
         noteManager.clear();
         helper.print("Загруженные сообщения удалены", true);
     }
 
-    protected void writeHistory() {
-        if (noteManager.isEmpty()) {
+    protected void write(boolean writeAllNotes) {
+        if (noteManager.isEmpty() && writeAllNotes) {
             helper.print("Нечего записывать. Сначала нужно загрузить сообщения", true);
             return;
         }
-        helper.print("Начинаю запись в файл (" + noteManager.getSize() + " сообщ. всего)", true);
+        if (noteManager.noSuitableNotes() && !writeAllNotes) {
+            helper.print("Нет отобранных сообщений", true);
+            return;
+        }
+        if (writeAllNotes) {
+            helper.print("Начинаю запись в файл (" + noteManager.getSize() + " сообщ. всего)", true);
+        } else {
+            helper.print("Начинаю запись в файл (" + noteManager.getSuitableNotesQuantity() + " сообщ. всего)", true);
+        }
         String channelName = "";
-        while (!noteManager.isEmpty()) {
-            helper.print(noteManager.getSize() + " сообщен. осталось записать", false);
-            Note note = noteManager.take();
+        while (writeAllNotes ? !noteManager.isEmpty() : !noteManager.noSuitableNotes()) {
+            if (writeAllNotes) {
+                helper.print(noteManager.getSize() + " сообщен. осталось записать", false);
+            } else {
+                helper.print(noteManager.getSuitableNotesQuantity() + " сообщен. осталось записать", false);
+            }
+            Note note;
+            if (writeAllNotes) {
+                note = noteManager.take();
+            } else {
+                note = noteManager.takeChosenNote();
+            }
             String senderName = note.getSenderName();
-
             if (!channelName.equals(senderName)) {
                 channelName = senderName;
                 try {
@@ -237,22 +270,23 @@ public class TgParser implements AutoCloseable {
                     helper.print("Ошибка при записи: " + e.getMessage(), true);
                 }
             }
-
-            Note noteWithLink = getMsgLink(note);
-
-            try {
-                Thread.sleep(Randomizer.giveNumber());
-            } catch (InterruptedException e) {
-                helper.print(e.getMessage(), true);
-            }
-
-            try {
-                FileRecorder.writeToFile(PropertyHandler.getFilePath(), noteWithLink.toString());
-            } catch (IOException e) {
-                helper.print("Ошибка при записи в файл: " + e.getMessage(), true);
-            }
+            writeNoteToFile(note);
         }
         helper.print("Запись сообщений в файл закончена", true);
+    }
+
+    private void writeNoteToFile(Note note) {
+        Note noteWithLink = getMsgLink(note);
+        try {
+            Thread.sleep(Randomizer.giveSmallNumber());
+        } catch (InterruptedException e) {
+            helper.print(e.getMessage(), true);
+        }
+        try {
+            FileRecorder.writeToFile(PropertyHandler.getFilePath(), noteWithLink.toString());
+        } catch (IOException e) {
+            helper.print("Ошибка при записи в файл: " + e.getMessage(), true);
+        }
     }
 
     protected SimpleTelegramClient getClient() {
@@ -267,20 +301,18 @@ public class TgParser implements AutoCloseable {
         client.send(new TdApi.LogOut()).thenAccept(ok -> {
             helper.print("Вышел из аккаунта", true);
         });
-        stopBlockingExecutor();
     }
 
     @Override
     public void close() {
         client.sendClose();
-        stopBlockingExecutor();
     }
 
     private void stopBlockingExecutor() {
         blockingExecutor.shutdownNow();
     }
 
-    protected void stopLoadingNewChannels() {
+    private void stopLoadingNewChannels() {
         isReadyToLoadNewChannels = false;
     }
 

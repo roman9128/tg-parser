@@ -40,8 +40,12 @@ public class Presenter implements ServiceHelper {
         service.loadHistory(folderIDString, dateFromString, dateToString);
     }
 
-    public void write() {
-        service.writeHistoryToFile();
+    public void find(String argsAsString) {
+        service.findNotes(argsAsString.split(" "));
+    }
+
+    public void write(String value) {
+        service.writeHistoryToFile(value.isEmpty() || value.isBlank());
     }
 
     public void clear() {

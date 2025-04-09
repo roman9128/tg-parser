@@ -27,8 +27,11 @@ public class ConsoleUI implements View {
                     case "load" -> {
                         load(args[1], args[2], args[3]);
                     }
+                    case "find" -> {
+                        find(args[1] + " " + args[2] + " " + args[3]);
+                    }
                     case "write" -> {
-                        write();
+                        write(args[1]);
                     }
                     case "clear" -> {
                         clear();
@@ -65,8 +68,13 @@ public class ConsoleUI implements View {
     }
 
     @Override
-    public void write() {
-        presenter.write();
+    public void find(String argsAsString) {
+        presenter.find(argsAsString);
+    }
+
+    @Override
+    public void write(String value) {
+        presenter.write(value);
     }
 
     @Override
@@ -103,6 +111,8 @@ public class ConsoleUI implements View {
                 + "* - если указано две даты, то загрузятся сообщения с начала первого указанного дня до конца второго указанного дня" + System.lineSeparator()
                 + "* первый параметр (Х) можно не указывать, если далее нет дат" + System.lineSeparator()
                 + "* все слова, параметры в команде load пишутся через один пробел" + System.lineSeparator()
+                + "*" + System.lineSeparator()
+                + "* find X - найти сообщения с хотя бы одним из указанных слов, вместо Х указать необходимые слова через один пробел" + System.lineSeparator()
                 + "*" + System.lineSeparator()
                 + "* write - записать в файл" + System.lineSeparator()
                 + "*" + System.lineSeparator()

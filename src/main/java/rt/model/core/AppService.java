@@ -43,7 +43,6 @@ public class AppService {
     }
 
     public void show() {
-        tgParserInstance.stopLoadingNewChannels();
         tgParserInstance.showFolders();
     }
 
@@ -59,16 +58,19 @@ public class AppService {
         tgParserInstance.logout();
     }
 
-    public void writeHistoryToFile() {
+    public void writeHistoryToFile(boolean writeAllNotes) {
         ExecutorService writer = Executors.newSingleThreadExecutor();
-        writer.execute(tgParserInstance::writeHistory);
+        writer.execute(() -> tgParserInstance.write(writeAllNotes));
         writer.shutdown();
     }
 
     public void loadHistory(String folderIDString, String dateFromString, String dateToString) {
-        tgParserInstance.stopLoadingNewChannels();
         ExecutorService loader = Executors.newSingleThreadExecutor();
         loader.execute(() -> tgParserInstance.loadChannelsHistory(folderIDString, dateFromString, dateToString));
         loader.shutdown();
+    }
+
+    public void findNotes(String[] args) {
+        tgParserInstance.findNotes(args);
     }
 }

@@ -48,6 +48,10 @@ public class Note {
         return senderName;
     }
 
+    protected String getText(){
+        return text;
+    }
+
     @Override
     public String toString() {
         StringBuilder builder = new StringBuilder();

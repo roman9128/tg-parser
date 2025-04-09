@@ -11,7 +11,9 @@ public interface View {
 
     void load(String folderIDString, String dateFromString, String dateToString);
 
-    void write();
+    void find(String argsAsString);
+
+    void write(String value);
 
     void clear();
 
@@ -22,5 +24,4 @@ public interface View {
     void print(String text, boolean needNextLine);
 
     String askParameter(String who, String question);
-
 }

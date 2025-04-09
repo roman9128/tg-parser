@@ -4,6 +4,7 @@ import java.io.Console;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.nio.charset.StandardCharsets;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -35,7 +36,7 @@ public final class ConsoleInput {
         synchronized (LOCK) {
             Console console = System.console();
             if (console != null) {
-                return console.readLine();
+                return new String(console.readLine().getBytes(console.charset()), StandardCharsets.UTF_8);
             } else {
                 if (scanner == null) {
                     scanner = new InputStreamReader(System.in);
