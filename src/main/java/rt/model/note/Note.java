@@ -5,6 +5,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.Locale;
+import java.util.Objects;
 
 public class Note {
     private final Long messageID;
@@ -50,6 +51,19 @@ public class Note {
 
     protected String getText(){
         return text;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Note note = (Note) o;
+        return Objects.equals(messageID, note.messageID) && Objects.equals(senderID, note.senderID);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(messageID, senderID);
     }
 
     @Override

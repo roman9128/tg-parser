@@ -38,18 +38,12 @@ public final class ConsoleInput {
         synchronized (LOCK) {
             Console console = System.console();
             if (console != null) {
-//                Charset consoleCharset = console.charset();
-//                System.out.println("Кодировка консоли, определенная Java: " + consoleCharset.name());
-//
-//                String line = console.readLine();
-//                System.out.println("Строка, считанная из консоли: " + line);
-//
-//                byte[] bytes = line.getBytes(consoleCharset);
-//
-//                String utf8String = new String(bytes, StandardCharsets.UTF_8);
-//                System.out.println("Строка в UTF-8: " + utf8String);
-//                return  utf8String;
-                return console.readLine();
+                Charset consoleCharset = console.charset();
+                if (consoleCharset.name().equals("windows-1251")) {
+                    return new String(console.readLine().getBytes(consoleCharset), StandardCharsets.UTF_8);
+                } else {
+                    return console.readLine();
+                }
             } else {
                 if (scanner == null) {
                     scanner = new InputStreamReader(System.in);

@@ -2,11 +2,14 @@ package rt.model.note;
 
 import it.tdlight.jni.TdApi;
 
+import java.util.ArrayDeque;
+import java.util.Deque;
+import java.util.LinkedHashSet;
 import java.util.concurrent.ConcurrentLinkedDeque;
 
 public class NoteManager {
     private final ConcurrentLinkedDeque<Note> notes = new ConcurrentLinkedDeque<>();
-    private final ConcurrentLinkedDeque<Note> chosen_notes = new ConcurrentLinkedDeque<>();
+    private Deque<Note> chosen_notes = new ArrayDeque<>();
     private final TextMatchNoteFinder noteFinder = new SimpleTextMatchNoteFinder();
 
     public void createNote(TdApi.Message message, String senderName) {
@@ -57,6 +60,7 @@ public class NoteManager {
         noteFinder.setArgs(args);
         chosen_notes.addAll(notes);
         chosen_notes.removeIf(note -> !noteFinder.noteIsSuitable(note));
+        chosen_notes = removeCopies();
     }
 
     public Note takeChosenNote() {
@@ -67,7 +71,11 @@ public class NoteManager {
         return chosen_notes.size();
     }
 
-    public String getArgs(){
+    public String getArgs() {
         return noteFinder.getArgs();
+    }
+
+    private ArrayDeque<Note> removeCopies() {
+        return new ArrayDeque<>(new LinkedHashSet<>(chosen_notes));
     }
 }
