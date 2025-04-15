@@ -2,9 +2,9 @@ package rt.model.note;
 
 import java.util.Arrays;
 
-public class NoteAnalyzer {
+public class SimpleTextMatchNoteFinder extends TextMatchNoteFinder {
 
-    protected boolean noteIsSuitable(Note note, String[] args) {
+    protected boolean noteIsSuitable(Note note) {
         if (note.getText().isEmpty() || note.getText().isBlank()) {
             return false;
         }

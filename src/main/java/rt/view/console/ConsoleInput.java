@@ -4,7 +4,9 @@ import java.io.Console;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -36,7 +38,18 @@ public final class ConsoleInput {
         synchronized (LOCK) {
             Console console = System.console();
             if (console != null) {
-                return new String(console.readLine().getBytes(console.charset()), StandardCharsets.UTF_8);
+//                Charset consoleCharset = console.charset();
+//                System.out.println("Кодировка консоли, определенная Java: " + consoleCharset.name());
+//
+//                String line = console.readLine();
+//                System.out.println("Строка, считанная из консоли: " + line);
+//
+//                byte[] bytes = line.getBytes(consoleCharset);
+//
+//                String utf8String = new String(bytes, StandardCharsets.UTF_8);
+//                System.out.println("Строка в UTF-8: " + utf8String);
+//                return  utf8String;
+                return console.readLine();
             } else {
                 if (scanner == null) {
                     scanner = new InputStreamReader(System.in);

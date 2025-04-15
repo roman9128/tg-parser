@@ -7,7 +7,7 @@ import java.util.concurrent.ConcurrentLinkedDeque;
 public class NoteManager {
     private final ConcurrentLinkedDeque<Note> notes = new ConcurrentLinkedDeque<>();
     private final ConcurrentLinkedDeque<Note> chosen_notes = new ConcurrentLinkedDeque<>();
-    private final NoteAnalyzer noteAnalyzer = new NoteAnalyzer();
+    private final TextMatchNoteFinder noteFinder = new SimpleTextMatchNoteFinder();
 
     public void createNote(TdApi.Message message, String senderName) {
         String text = "";
@@ -54,8 +54,9 @@ public class NoteManager {
     }
 
     public void findNotes(String[] args) {
+        noteFinder.setArgs(args);
         chosen_notes.addAll(notes);
-        chosen_notes.removeIf(note -> !noteAnalyzer.noteIsSuitable(note, args));
+        chosen_notes.removeIf(note -> !noteFinder.noteIsSuitable(note));
     }
 
     public Note takeChosenNote() {
@@ -64,5 +65,9 @@ public class NoteManager {
 
     public int getSuitableNotesQuantity() {
         return chosen_notes.size();
+    }
+
+    public String getArgs(){
+        return noteFinder.getArgs();
     }
 }
