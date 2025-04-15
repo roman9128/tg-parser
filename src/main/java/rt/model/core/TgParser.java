@@ -227,9 +227,9 @@ public class TgParser implements AutoCloseable {
         noteManager.findNotes(args);
         helper.print("Поиск [" + noteManager.getArgs() + "] завершён", true);
         if (noteManager.noSuitableNotes()) {
-            helper.print("Ничего не найдено", true);
+            helper.print("Нет отобранных сообщений", true);
         } else {
-            helper.print("Всего найдено сообщений, содержащих указанные слова: " + noteManager.getSuitableNotesQuantity(), true);
+            helper.print("Всего отобрано сообщений: " + noteManager.getSuitableNotesQuantity(), true);
             helper.print("Чтобы загрузить отобранные сообщения, введи команду write x", true);
         }
     }

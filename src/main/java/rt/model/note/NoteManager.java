@@ -58,8 +58,7 @@ public class NoteManager {
 
     public void findNotes(String[] args) {
         noteFinder.setArgs(args);
-        chosen_notes.addAll(notes);
-        chosen_notes.removeIf(note -> !noteFinder.noteIsSuitable(note));
+        addSuitableNote();
         chosen_notes = removeCopies();
     }
 
@@ -73,6 +72,14 @@ public class NoteManager {
 
     public String getArgs() {
         return noteFinder.getArgs();
+    }
+
+    private void addSuitableNote() {
+        for (Note note : notes) {
+            if (noteFinder.noteIsSuitable(note)) {
+                chosen_notes.addLast(note);
+            }
+        }
     }
 
     private ArrayDeque<Note> removeCopies() {
