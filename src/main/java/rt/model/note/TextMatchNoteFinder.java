@@ -2,17 +2,12 @@ package rt.model.note;
 
 import java.util.Arrays;
 
-public abstract class TextMatchNoteFinder {
+public class TextMatchNoteFinder {
 
-    protected String[] args = new String[]{};
-
-    protected abstract boolean noteIsSuitable(Note note);
-
-    protected void setArgs(String[] args) {
-        this.args = args;
-    }
-
-    protected String getArgs(){
-        return String.join(" ", Arrays.stream(args).toArray(String[]::new));
+    protected boolean noteContainsOneOfArgs(Note note, String[] args) {
+        if (note.getText().isEmpty() || note.getText().isBlank()) {
+            return false;
+        }
+        return Arrays.stream(args).anyMatch(arg -> note.getText().toLowerCase().contains(arg.toLowerCase()));
     }
 }

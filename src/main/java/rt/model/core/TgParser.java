@@ -14,6 +14,7 @@ import rt.presenter.ServiceHelper;
 import java.io.IOException;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.util.Arrays;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
@@ -225,18 +226,20 @@ public class TgParser implements AutoCloseable {
             return;
         }
         noteManager.findNotes(args);
-        helper.print("Поиск [" + noteManager.getArgs() + "] завершён", true);
+        helper.print("Поиск завершён", true);
         if (noteManager.noSuitableNotes()) {
             helper.print("Нет отобранных сообщений", true);
         } else {
             helper.print("Всего отобрано сообщений: " + noteManager.getSuitableNotesQuantity(), true);
+            helper.print("Количество сообщений, содержащих слова для поиска", true);
+            helper.print(noteManager.getStat(), true);
             helper.print("Чтобы загрузить отобранные сообщения, введи команду write x", true);
         }
     }
 
     protected void clear() {
-        noteManager.clear();
-        helper.print("Загруженные сообщения удалены", true);
+        noteManager.clearAll();
+        helper.print("Все загруженные сообщения удалены", true);
     }
 
     protected void write(boolean writeAllNotes) {
@@ -278,6 +281,11 @@ public class TgParser implements AutoCloseable {
             writeNoteToFile(note);
         }
         helper.print("Запись сообщений в файл закончена", true);
+        if (writeAllNotes) {
+            noteManager.clearAll();
+        } else {
+            noteManager.clearChosen();
+        }
     }
 
     private void writeNoteToFile(Note note) {

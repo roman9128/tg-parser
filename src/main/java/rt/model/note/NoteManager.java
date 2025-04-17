@@ -2,15 +2,17 @@ package rt.model.note;
 
 import it.tdlight.jni.TdApi;
 
-import java.util.ArrayDeque;
-import java.util.Deque;
-import java.util.LinkedHashSet;
+import java.util.*;
 import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.stream.Collectors;
 
 public class NoteManager {
+
     private final ConcurrentLinkedDeque<Note> notes = new ConcurrentLinkedDeque<>();
     private Deque<Note> chosen_notes = new ArrayDeque<>();
-    private final TextMatchNoteFinder noteFinder = new SimpleTextMatchNoteFinder();
+    private HashMap<String, Integer> argsMap = new HashMap<>();
+    private final TextMatchNoteFinder noteFinder = new TextMatchNoteFinder();
+    private final NotesCounter notesCounter = new NotesCounter();
 
     public void createNote(TdApi.Message message, String senderName) {
         String text = "";
@@ -51,15 +53,22 @@ public class NoteManager {
         return chosen_notes.isEmpty();
     }
 
-    public void clear() {
+    public void clearAll() {
         notes.clear();
         chosen_notes.clear();
+        argsMap.clear();
+    }
+
+    public void clearChosen() {
+        chosen_notes.clear();
+        argsMap.clear();
     }
 
     public void findNotes(String[] args) {
-        noteFinder.setArgs(args);
-        addSuitableNote();
-        chosen_notes = removeCopies();
+        Arrays.stream(args).forEach(arg -> argsMap.put(arg, 0));
+        addSuitableNoteWithOneOfArgs(args);
+        removeCopies();
+        countNotesWithArgs();
     }
 
     public Note takeChosenNote() {
@@ -70,19 +79,34 @@ public class NoteManager {
         return chosen_notes.size();
     }
 
-    public String getArgs() {
-        return noteFinder.getArgs();
-    }
-
-    private void addSuitableNote() {
+    private void addSuitableNoteWithOneOfArgs(String[] args) {
         for (Note note : notes) {
-            if (noteFinder.noteIsSuitable(note)) {
+            if (noteFinder.noteContainsOneOfArgs(note, args)) {
                 chosen_notes.addLast(note);
             }
         }
     }
 
-    private ArrayDeque<Note> removeCopies() {
-        return new ArrayDeque<>(new LinkedHashSet<>(chosen_notes));
+    private void removeCopies() {
+        chosen_notes = new ArrayDeque<>(new LinkedHashSet<>(chosen_notes));
+    }
+
+    private void countNotesWithArgs() {
+        for (Note chosenNote : chosen_notes) {
+            for (String arg : argsMap.keySet()) {
+                notesCounter.count(chosenNote.getText(), arg);
+            }
+        }
+        argsMap.putAll(notesCounter.getArgsMap());
+        notesCounter.clear();
+    }
+
+    public String getStat() {
+        Map<String, Integer> sortedMap = argsMap.entrySet().stream()
+                .sorted(Map.Entry.comparingByValue(Comparator.reverseOrder()))
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (e1, e2) -> e1, LinkedHashMap::new));
+        return sortedMap.entrySet().stream()
+                .map(entry -> entry.getKey() + ": " + entry.getValue())
+                .collect(Collectors.joining(System.lineSeparator()));
     }
 }
