@@ -14,7 +14,6 @@ import rt.presenter.ServiceHelper;
 import java.io.IOException;
 import java.time.LocalDate;
 import java.time.ZoneId;
-import java.util.Arrays;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
@@ -256,13 +255,9 @@ public class TgParser implements AutoCloseable {
         } else {
             helper.print("Начинаю запись в файл (" + noteManager.getSuitableNotesQuantity() + " сообщ. всего)", true);
         }
+        helper.print("Записываю. Подожди немного", false);
         String channelName = "";
         while (writeAllNotes ? !noteManager.isEmpty() : !noteManager.noSuitableNotes()) {
-            if (writeAllNotes) {
-                helper.print(noteManager.getSize() + " сообщен. осталось записать", false);
-            } else {
-                helper.print(noteManager.getSuitableNotesQuantity() + " сообщен. осталось записать", false);
-            }
             Note note;
             if (writeAllNotes) {
                 note = noteManager.take();
@@ -278,27 +273,17 @@ public class TgParser implements AutoCloseable {
                     helper.print("Ошибка при записи: " + e.getMessage(), true);
                 }
             }
-            writeNoteToFile(note);
+            try {
+                FileRecorder.writeToFile(PropertyHandler.getFilePath(), note.toString());
+            } catch (IOException e) {
+                helper.print("Ошибка при записи в файл: " + e.getMessage(), true);
+            }
         }
         helper.print("Запись сообщений в файл закончена", true);
         if (writeAllNotes) {
             noteManager.clearAll();
         } else {
             noteManager.clearChosen();
-        }
-    }
-
-    private void writeNoteToFile(Note note) {
-        Note noteWithLink = getMsgLink(note);
-        try {
-            Thread.sleep(Randomizer.giveSmallNumber());
-        } catch (InterruptedException e) {
-            helper.print(e.getMessage(), true);
-        }
-        try {
-            FileRecorder.writeToFile(PropertyHandler.getFilePath(), noteWithLink.toString());
-        } catch (IOException e) {
-            helper.print("Ошибка при записи в файл: " + e.getMessage(), true);
         }
     }
 
@@ -335,9 +320,14 @@ public class TgParser implements AutoCloseable {
             String senderName = chats.get(message.chatId).title;
             noteManager.createNote(message, senderName);
         }
+        noteManager.getNotes().forEach(note -> {
+            if (!note.hasLink()) {
+                getMsgLink(note);
+            }
+        });
     }
 
-    private Note getMsgLink(Note note) {
+    private void getMsgLink(Note note) {
         client.send(new TdApi.GetMessageLink(note.getSenderID(), note.getMessageID(), 0, true, true))
                 .whenCompleteAsync((link, error) -> {
                     if (error != null) {
@@ -347,6 +337,5 @@ public class TgParser implements AutoCloseable {
                         note.setMsgLink(link.link);
                     }
                 });
-        return note;
     }
 }

@@ -8,8 +8,4 @@ public class Randomizer {
     public static int giveNumber() {
         return random.nextInt(100, 500);
     }
-
-    public static int giveSmallNumber(){
-        return random.nextInt(60, 90);
-    }
 }

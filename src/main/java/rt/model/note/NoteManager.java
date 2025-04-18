@@ -10,7 +10,7 @@ public class NoteManager {
 
     private final ConcurrentLinkedDeque<Note> notes = new ConcurrentLinkedDeque<>();
     private Deque<Note> chosen_notes = new ArrayDeque<>();
-    private HashMap<String, Integer> argsMap = new HashMap<>();
+    private final HashMap<String, Integer> argsMap = new HashMap<>();
     private final TextMatchNoteFinder noteFinder = new TextMatchNoteFinder();
     private final NotesCounter notesCounter = new NotesCounter();
 
@@ -108,5 +108,9 @@ public class NoteManager {
         return sortedMap.entrySet().stream()
                 .map(entry -> entry.getKey() + ": " + entry.getValue())
                 .collect(Collectors.joining(System.lineSeparator()));
+    }
+
+    public ConcurrentLinkedDeque<Note> getNotes() {
+        return notes;
     }
 }

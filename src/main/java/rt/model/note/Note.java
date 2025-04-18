@@ -49,8 +49,12 @@ public class Note {
         return senderName;
     }
 
-    protected String getText(){
+    protected String getText() {
         return text;
+    }
+
+    public boolean hasLink() {
+        return msgLink != null;
     }
 
     @Override
