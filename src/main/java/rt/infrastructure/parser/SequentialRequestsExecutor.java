@@ -1,4 +1,4 @@
-package rt.model.authentication;
+package rt.infrastructure.parser;
 
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
@@ -17,7 +17,7 @@ class SequentialRequestsExecutor implements Executor {
     private SequentialRequestsExecutor() {
     }
 
-    protected static SequentialRequestsExecutor getInstance() {
+    static SequentialRequestsExecutor getInstance() {
         SequentialRequestsExecutor instance = INSTANCE;
         if (instance == null) {
             synchronized (SequentialRequestsExecutor.class) {

@@ -1,12 +1,14 @@
-package rt.model.note;
+package rt.infrastructure.storage;
 
 import it.tdlight.jni.TdApi;
+import rt.model.entity.Note;
+import rt.model.storage.NoteStorageService;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.stream.Collectors;
 
-public class NoteManager {
+public class NoteStorage implements NoteStorageService {
 
     private final ConcurrentLinkedDeque<Note> notes = new ConcurrentLinkedDeque<>();
     private Deque<Note> chosen_notes = new ArrayDeque<>();
@@ -14,6 +16,7 @@ public class NoteManager {
     private final TextMatchNoteFinder noteFinder = new TextMatchNoteFinder();
     private final NotesCounter notesCounter = new NotesCounter();
 
+    @Override
     public void createNote(TdApi.Message message, String senderName) {
         String text = "";
         TdApi.MessageContent messageContent = message.content;
@@ -37,33 +40,50 @@ public class NoteManager {
         notes.offer(new Note(message.id, message.chatId, message.date, senderName, text));
     }
 
-    public Note take() {
+    @Override
+    public Note takeNoteFromCommonPool() {
         return notes.pollFirst();
     }
 
-    public int getSize() {
+    @Override
+    public Note takeNoteFromChosenNotesPool() {
+        return chosen_notes.pollFirst();
+    }
+
+    @Override
+    public int getAllNotesQuantity() {
         return notes.size();
     }
 
-    public boolean isEmpty() {
+    @Override
+    public int getSuitableNotesQuantity() {
+        return chosen_notes.size();
+    }
+
+    @Override
+    public boolean noAnyNotes() {
         return notes.isEmpty();
     }
 
+    @Override
     public boolean noSuitableNotes() {
         return chosen_notes.isEmpty();
     }
 
+    @Override
     public void clearAll() {
         notes.clear();
         chosen_notes.clear();
         argsMap.clear();
     }
 
+    @Override
     public void clearChosen() {
         chosen_notes.clear();
         argsMap.clear();
     }
 
+    @Override
     public void findNotes(String[] args) {
         Arrays.stream(args).forEach(arg -> argsMap.put(arg, 0));
         addSuitableNoteWithOneOfArgs(args);
@@ -71,12 +91,24 @@ public class NoteManager {
         countNotesWithArgs();
     }
 
-    public Note takeChosenNote() {
-        return chosen_notes.pollFirst();
+    @Override
+    public String getStat() {
+        Map<String, Integer> sortedMap = argsMap.entrySet().stream()
+                .sorted(Map.Entry.comparingByValue(Comparator.reverseOrder()))
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (e1, e2) -> e1, LinkedHashMap::new));
+        return sortedMap.entrySet().stream()
+                .map(entry -> entry.getKey() + ": " + entry.getValue())
+                .collect(Collectors.joining(System.lineSeparator()));
     }
 
-    public int getSuitableNotesQuantity() {
-        return chosen_notes.size();
+    @Override
+    public ConcurrentLinkedDeque<Note> getNotesCommonPool() {
+        return notes;
+    }
+
+    @Override
+    public Deque<Note> getChosenNotesPool() {
+        return chosen_notes;
     }
 
     private void addSuitableNoteWithOneOfArgs(String[] args) {
@@ -99,18 +131,5 @@ public class NoteManager {
         }
         argsMap.putAll(notesCounter.getArgsMap());
         notesCounter.clear();
-    }
-
-    public String getStat() {
-        Map<String, Integer> sortedMap = argsMap.entrySet().stream()
-                .sorted(Map.Entry.comparingByValue(Comparator.reverseOrder()))
-                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (e1, e2) -> e1, LinkedHashMap::new));
-        return sortedMap.entrySet().stream()
-                .map(entry -> entry.getKey() + ": " + entry.getValue())
-                .collect(Collectors.joining(System.lineSeparator()));
-    }
-
-    public ConcurrentLinkedDeque<Note> getNotes() {
-        return notes;
     }
 }

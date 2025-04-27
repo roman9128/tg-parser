@@ -1,9 +1,12 @@
 package rt.view;
 
 import rt.presenter.Presenter;
+import rt.presenter.parser.ParserPresenter;
+
+import java.util.List;
 
 public interface View {
-    void setPresenter(Presenter presenter);
+    void setPresenters(List<Presenter> presenters);
 
     void startInteractions();
 
@@ -14,6 +17,8 @@ public interface View {
     void find(String argsAsString);
 
     void write(String value);
+
+    void classify();
 
     void clear();
 

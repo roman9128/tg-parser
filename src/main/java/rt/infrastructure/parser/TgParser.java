@@ -1,17 +1,15 @@
-package rt.model.core;
+package rt.infrastructure.parser;
 
 import it.tdlight.client.*;
 import it.tdlight.jni.TdApi;
-import rt.model.authentication.ClientInteractionImpl;
-import rt.model.authentication.PhoneAuthentication;
-import rt.model.note.*;
-import rt.model.utils.FileRecorder;
-import rt.model.utils.ParseMaster;
-import rt.model.utils.PropertyHandler;
-import rt.model.utils.Randomizer;
-import rt.presenter.ServiceHelper;
+import rt.model.entity.*;
+import rt.infrastructure.utils.ParseMaster;
+import rt.infrastructure.utils.PropertyHandler;
+import rt.infrastructure.utils.Randomizer;
+import rt.model.service.ParserService;
+import rt.model.storage.NoteStorageService;
+import rt.presenter.parser.ServiceHelper;
 
-import java.io.IOException;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.concurrent.ConcurrentHashMap;
@@ -19,7 +17,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-public class TgParser implements AutoCloseable {
+public class TgParser implements ParserService {
 
     private final SimpleTelegramClient client;
     private final ServiceHelper helper;
@@ -29,12 +27,13 @@ public class TgParser implements AutoCloseable {
     private final ConcurrentMap<Integer, String> foldersInfo = new ConcurrentHashMap<>();
     private final ConcurrentMap<Integer, long[]> chatsInFolders = new ConcurrentHashMap<>();
     private final ConcurrentMap<Long, TdApi.Supergroup> supergroups = new ConcurrentHashMap<>();
-    private final NoteManager noteManager = new NoteManager();
+    private final NoteStorageService storage;
     private volatile boolean isReadyToLoadNewChannels = true;
 
-    protected TgParser(SimpleTelegramClientBuilder clientBuilder,
-                       PhoneAuthentication authenticationData,
-                       ServiceHelper helper) {
+    public TgParser(SimpleTelegramClientBuilder clientBuilder,
+                    PhoneAuthentication authenticationData,
+                    NoteStorageService storage, ServiceHelper helper) {
+        this.storage = storage;
         this.helper = helper;
         clientBuilder.addUpdateHandler(TdApi.UpdateAuthorizationState.class, this::onUpdateAuthorizationState);
         clientBuilder.addUpdateHandler(TdApi.UpdateNewChat.class, this::onUpdateChat);
@@ -113,7 +112,8 @@ public class TgParser implements AutoCloseable {
         }
     }
 
-    protected void showFolders() {
+    @Override
+    public void show() {
         stopLoadingNewChannels();
         StringBuilder builder = new StringBuilder();
         for (int folderID : foldersInfo.keySet()) {
@@ -133,7 +133,8 @@ public class TgParser implements AutoCloseable {
         helper.print(builder.toString(), true);
     }
 
-    protected void loadChannelsHistory(String folderIDString, String dateFromString, String dateToString) {
+    @Override
+    public void loadChannelsHistory(String folderIDString, String dateFromString, String dateToString) {
         stopLoadingNewChannels();
         Integer folderID = ParseMaster.parseInteger(folderIDString);
         Long dateFromUnix = ParseMaster.parseUnixDateStartOfDay(dateFromString);
@@ -172,7 +173,7 @@ public class TgParser implements AutoCloseable {
         }
         chatHistoryLoader.removeSurplus();
         prepareNotes();
-        helper.print("Всего загружено " + noteManager.getSize() + " сообщ., соотв. заданным параметрам", true);
+        helper.print("Всего загружено " + storage.getAllNotesQuantity() + " сообщ., соотв. заданным параметрам", true);
     }
 
     private void loadChatHistory(Long channelID, Long dateFromUnix) {
@@ -215,87 +216,18 @@ public class TgParser implements AutoCloseable {
         chatHistoryLoader.zeroCounter();
     }
 
-    protected void findNotes(String[] args) {
-        if (args.length == 0) {
-            helper.print("Не введены слова для поиска", true);
-            return;
-        }
-        if (noteManager.isEmpty()) {
-            helper.print("Сначала нужно загрузить сообщения", true);
-            return;
-        }
-        noteManager.findNotes(args);
-        helper.print("Поиск завершён", true);
-        if (noteManager.noSuitableNotes()) {
-            helper.print("Нет отобранных сообщений", true);
-        } else {
-            helper.print("Всего отобрано сообщений: " + noteManager.getSuitableNotesQuantity(), true);
-            helper.print("Количество сообщений, содержащих слова для поиска", true);
-            helper.print(noteManager.getStat(), true);
-            helper.print("Чтобы загрузить отобранные сообщения, введи команду write x", true);
-        }
-    }
-
-    protected void clear() {
-        noteManager.clearAll();
+    @Override
+    public void clear() {
+        storage.clearAll();
         helper.print("Все загруженные сообщения удалены", true);
-    }
-
-    protected void write(boolean writeAllNotes) {
-        if (noteManager.isEmpty() && writeAllNotes) {
-            helper.print("Нечего записывать. Сначала нужно загрузить сообщения", true);
-            return;
-        }
-        if (noteManager.noSuitableNotes() && !writeAllNotes) {
-            helper.print("Нет отобранных сообщений", true);
-            return;
-        }
-        if (writeAllNotes) {
-            helper.print("Начинаю запись в файл (" + noteManager.getSize() + " сообщ. всего)", true);
-        } else {
-            helper.print("Начинаю запись в файл (" + noteManager.getSuitableNotesQuantity() + " сообщ. всего)", true);
-        }
-        helper.print("Записываю. Подожди немного", false);
-        String channelName = "";
-        while (writeAllNotes ? !noteManager.isEmpty() : !noteManager.noSuitableNotes()) {
-            Note note;
-            if (writeAllNotes) {
-                note = noteManager.take();
-            } else {
-                note = noteManager.takeChosenNote();
-            }
-            String senderName = note.getSenderName();
-            if (!channelName.equals(senderName)) {
-                channelName = senderName;
-                try {
-                    FileRecorder.writeToFile(PropertyHandler.getFilePath(), ">>>>>>> Далее сообщения из канала " + channelName + System.lineSeparator());
-                } catch (IOException e) {
-                    helper.print("Ошибка при записи: " + e.getMessage(), true);
-                }
-            }
-            try {
-                FileRecorder.writeToFile(PropertyHandler.getFilePath(), note.toString());
-            } catch (IOException e) {
-                helper.print("Ошибка при записи в файл: " + e.getMessage(), true);
-            }
-        }
-        helper.print("Запись сообщений в файл закончена", true);
-        if (writeAllNotes) {
-            noteManager.clearAll();
-        } else {
-            noteManager.clearChosen();
-        }
-    }
-
-    protected SimpleTelegramClient getClient() {
-        return client;
     }
 
     private Long transferChatID(Long chatID) {
         return -(1000000000000L + chatID);
     }
 
-    protected void logout() {
+    @Override
+    public void logout() {
         client.send(new TdApi.LogOut()).thenAccept(ok -> {
             helper.print("Вышел из аккаунта", true);
         });
@@ -304,6 +236,11 @@ public class TgParser implements AutoCloseable {
     @Override
     public void close() {
         client.sendClose();
+    }
+
+    @Override
+    public void waitForExit() throws InterruptedException {
+        client.waitForExit();
     }
 
     private void stopBlockingExecutor() {
@@ -318,9 +255,9 @@ public class TgParser implements AutoCloseable {
         while (!chatHistoryLoader.isEmpty()) {
             TdApi.Message message = chatHistoryLoader.takeMessage();
             String senderName = chats.get(message.chatId).title;
-            noteManager.createNote(message, senderName);
+            storage.createNote(message, senderName);
         }
-        noteManager.getNotes().forEach(note -> {
+        storage.getNotesCommonPool().forEach(note -> {
             if (!note.hasLink()) {
                 getMsgLink(note);
             }

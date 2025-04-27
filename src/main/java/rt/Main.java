@@ -1,13 +1,29 @@
 package rt;
 
-import rt.model.core.AppService;
-import rt.presenter.Presenter;
+import rt.infrastructure.storage.NoteStorage;
+import rt.model.storage.NoteStorageService;
+import rt.presenter.analyzer.AnalyzerPresenter;
+import rt.presenter.parser.ParserPresenter;
+import rt.presenter.recorder.RecorderPresenter;
+import rt.presenter.storage.StoragePresenter;
+import rt.view.View;
 import rt.view.console.ConsoleUI;
+
+import java.util.List;
 
 public class Main {
 
     public static void main(String[] args) {
-        Presenter presenter = new Presenter(new AppService(), new ConsoleUI());
-        presenter.initService();
+        View view = new ConsoleUI();
+        NoteStorageService storage = new NoteStorage();
+
+        ParserPresenter parserPresenter = new ParserPresenter(view, storage);
+        StoragePresenter storagePresenter = new StoragePresenter(view, storage);
+        RecorderPresenter recorderPresenter = new RecorderPresenter(view, storage);
+        AnalyzerPresenter analyzerPresenter = new AnalyzerPresenter(view, storage);
+
+        view.setPresenters(List.of(parserPresenter, storagePresenter, recorderPresenter));
+
+        parserPresenter.initService();
     }
 }

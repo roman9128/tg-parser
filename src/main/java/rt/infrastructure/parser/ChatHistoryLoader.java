@@ -1,4 +1,4 @@
-package rt.model.core;
+package rt.infrastructure.parser;
 
 import it.tdlight.client.GenericResultHandler;
 import it.tdlight.client.Result;
@@ -8,7 +8,7 @@ import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
-public class ChatHistoryLoader implements GenericResultHandler<TdApi.Messages> {
+class ChatHistoryLoader implements GenericResultHandler<TdApi.Messages> {
 
     private final ConcurrentLinkedDeque<TdApi.Message> RECEIVED_MESSAGES = new ConcurrentLinkedDeque<>();
     private final AtomicInteger countArrived = new AtomicInteger(0);
@@ -33,51 +33,51 @@ public class ChatHistoryLoader implements GenericResultHandler<TdApi.Messages> {
         }
     }
 
-    protected Long getLastMessageID() {
+    Long getLastMessageID() {
         if (RECEIVED_MESSAGES.peekLast() != null) {
             return RECEIVED_MESSAGES.peekLast().id;
         } else return 0L;
     }
 
-    protected Long getLastMessageDate() {
+    Long getLastMessageDate() {
         return lastMessageDate.get();
     }
 
-    protected Long getLastMessageChatID() {
+    Long getLastMessageChatID() {
         if (RECEIVED_MESSAGES.peekLast() != null) {
             return RECEIVED_MESSAGES.peekLast().chatId;
         } else return 0L;
     }
 
-    protected int getCountArrived() {
+    int getCountArrived() {
         return countArrived.get();
     }
 
-    protected void zeroCounter() {
+    void zeroCounter() {
         countArrived.set(0);
     }
 
-    protected TdApi.Message takeMessage() {
+    TdApi.Message takeMessage() {
         return RECEIVED_MESSAGES.pollFirst();
     }
 
-    protected boolean isEmpty() {
+    boolean isEmpty() {
         return RECEIVED_MESSAGES.isEmpty();
     }
 
-    protected int getAmountOfReceivedMsg() {
+    int getAmountOfReceivedMsg() {
         return RECEIVED_MESSAGES.size();
     }
 
-    protected void setDateFromUnix(Long dateFromUnix) {
+    void setDateFromUnix(Long dateFromUnix) {
         this.dateFromUnix = dateFromUnix;
     }
 
-    protected void setDateToUnix(Long dateToUnix) {
+    void setDateToUnix(Long dateToUnix) {
         this.dateToUnix = dateToUnix;
     }
 
-    protected void removeSurplus() {
+    void removeSurplus() {
         RECEIVED_MESSAGES.removeIf(message -> message.date < dateFromUnix || message.date > dateToUnix);
     }
 }

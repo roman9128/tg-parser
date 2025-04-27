@@ -1,8 +1,8 @@
-package rt.model.authentication;
+package rt.infrastructure.parser;
 
 import it.tdlight.client.AuthenticationData;
 import it.tdlight.client.AuthenticationSupplier;
-import rt.presenter.PrinterScanner;
+import rt.presenter.parser.PrinterScanner;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;

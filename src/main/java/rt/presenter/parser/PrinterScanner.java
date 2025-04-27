@@ -1,4 +1,4 @@
-package rt.presenter;
+package rt.presenter.parser;
 
 public interface PrinterScanner {
     void print(String text, boolean needNextLine);

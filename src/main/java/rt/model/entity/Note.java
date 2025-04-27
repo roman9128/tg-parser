@@ -1,9 +1,10 @@
-package rt.model.note;
+package rt.model.entity;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 
@@ -14,8 +15,9 @@ public class Note {
     private final LocalDateTime msgTime;
     private String msgLink;
     private final String text;
+    private List<String> keyWords;
 
-    protected Note(Long messageID, Long senderID, Integer msgTimeUNIX, String senderName, String text) {
+    public Note(Long messageID, Long senderID, Integer msgTimeUNIX, String senderName, String text) {
         this.messageID = messageID;
         this.senderID = senderID;
         this.msgTime = convertDateTime(msgTimeUNIX);
@@ -25,6 +27,10 @@ public class Note {
 
     public void setMsgLink(String link) {
         msgLink = link;
+    }
+
+    public void setKeyWords(List<String> keyWords) {
+        this.keyWords = keyWords;
     }
 
     private LocalDateTime convertDateTime(Integer msgTimeUNIX) {
@@ -49,8 +55,16 @@ public class Note {
         return senderName;
     }
 
-    protected String getText() {
+    public String getText() {
         return text;
+    }
+
+    private String getKeyWords() {
+        if (keyWords == null || keyWords.isEmpty()) {
+            return "не определена";
+        } else {
+            return String.join(" ", keyWords);
+        }
     }
 
     public boolean hasLink() {
@@ -82,6 +96,8 @@ public class Note {
                 .append("Ссылка: ").append(msgLink)
                 .append(System.lineSeparator())
                 .append("Текст: ").append(text)
+                .append(System.lineSeparator())
+                .append("Тема: ").append(getKeyWords())
                 .append(System.lineSeparator())
                 .append("}")
                 .append(System.lineSeparator());

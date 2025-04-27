@@ -1,10 +1,12 @@
-package rt.model.note;
+package rt.infrastructure.storage;
+
+import rt.model.entity.Note;
 
 import java.util.Arrays;
 
-public class TextMatchNoteFinder {
+class TextMatchNoteFinder {
 
-    protected boolean noteContainsOneOfArgs(Note note, String[] args) {
+    boolean noteContainsOneOfArgs(Note note, String[] args) {
         if (note.getText().isEmpty() || note.getText().isBlank()) {
             return false;
         }

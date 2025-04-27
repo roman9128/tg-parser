@@ -1,4 +1,6 @@
-package rt.model.utils;
+package rt.infrastructure.utils;
+
+import rt.infrastructure.recorder.FileRecorder;
 
 import java.io.FileInputStream;
 import java.io.IOException;

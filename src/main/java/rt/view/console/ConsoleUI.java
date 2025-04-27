@@ -1,15 +1,27 @@
 package rt.view.console;
 
-import rt.model.utils.PropertyHandler;
+import rt.infrastructure.utils.PropertyHandler;
 import rt.presenter.Presenter;
+import rt.presenter.analyzer.AnalyzerPresenter;
+import rt.presenter.parser.ParserPresenter;
+import rt.presenter.recorder.RecorderPresenter;
+import rt.presenter.storage.StoragePresenter;
 import rt.view.View;
 
+import java.util.List;
+
 public class ConsoleUI implements View {
-    private Presenter presenter;
+    private ParserPresenter parserPresenter;
+    private StoragePresenter storagePresenter;
+    private RecorderPresenter recorderPresenter;
+    private AnalyzerPresenter analyzerPresenter;
 
     @Override
-    public void setPresenter(Presenter presenter) {
-        this.presenter = presenter;
+    public void setPresenters(List<Presenter> presenters) {
+        this.parserPresenter = (ParserPresenter) presenters.get(0);
+        this.storagePresenter = (StoragePresenter) presenters.get(1);
+        this.recorderPresenter = (RecorderPresenter) presenters.get(2);
+//        this.analyzerPresenter = (AnalyzerPresenter) presenters.get(3);
     }
 
     @Override
@@ -29,6 +41,9 @@ public class ConsoleUI implements View {
                     }
                     case "find" -> {
                         find(args[1] + " " + args[2] + " " + args[3]);
+                    }
+                    case "class" -> {
+                        classify();
                     }
                     case "write" -> {
                         write(args[1]);
@@ -59,37 +74,42 @@ public class ConsoleUI implements View {
 
     @Override
     public void show() {
-        presenter.show();
+        parserPresenter.show();
     }
 
     @Override
     public void load(String folderIDString, String dateFromString, String dateToString) {
-        presenter.load(folderIDString, dateFromString, dateToString);
+        parserPresenter.load(folderIDString, dateFromString, dateToString);
     }
 
     @Override
     public void find(String argsAsString) {
-        presenter.find(argsAsString);
+        storagePresenter.find(argsAsString);
+    }
+
+    @Override
+    public void classify() {
+        analyzerPresenter.classify();
     }
 
     @Override
     public void write(String value) {
-        presenter.write(value);
+        recorderPresenter.write(value);
     }
 
     @Override
     public void clear() {
-        presenter.clear();
+        parserPresenter.clear();
     }
 
     @Override
     public void stop() {
-        presenter.stop();
+        parserPresenter.close();
     }
 
     @Override
     public void logout() {
-        presenter.logout();
+        parserPresenter.logout();
     }
 
     private void printMenu() {
@@ -113,6 +133,8 @@ public class ConsoleUI implements View {
                 + "* все слова, параметры в команде load пишутся через один пробел" + System.lineSeparator()
                 + "*" + System.lineSeparator()
                 + "* find X - найти сообщения с хотя бы одним из указанных слов, вместо Х указать необходимые слова через один пробел" + System.lineSeparator()
+                + "*" + System.lineSeparator()
+                + "* class - определить тематики сообщений (найдёт только те, на которые натренирован анализатор)" + System.lineSeparator()
                 + "*" + System.lineSeparator()
                 + "* write - записать в файл" + System.lineSeparator()
                 + "*" + System.lineSeparator()

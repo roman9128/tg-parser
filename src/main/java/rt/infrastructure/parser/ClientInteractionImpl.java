@@ -1,18 +1,18 @@
-package rt.model.authentication;
+package rt.infrastructure.parser;
 
 import it.tdlight.client.*;
-import rt.presenter.PrinterScanner;
+import rt.presenter.parser.PrinterScanner;
 
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 
-public class ClientInteractionImpl implements ClientInteraction {
+class ClientInteractionImpl implements ClientInteraction {
     private final ExecutorService blockingExecutor;
     private final Authenticable authenticable;
     private final PrinterScanner printerScanner;
 
-    public ClientInteractionImpl(ExecutorService blockingExecutor, Authenticable authenticable, PrinterScanner printerScanner) {
+    ClientInteractionImpl(ExecutorService blockingExecutor, Authenticable authenticable, PrinterScanner printerScanner) {
         this.blockingExecutor = blockingExecutor;
         this.authenticable = authenticable;
         this.printerScanner = printerScanner;
