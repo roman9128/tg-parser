@@ -13,8 +13,8 @@ public class Note {
     private final Long senderID;
     private final String senderName;
     private final LocalDateTime msgTime;
-    private String msgLink;
     private final String text;
+    private String msgLink;
     private List<String> keyWords;
 
     public Note(Long messageID, Long senderID, Integer msgTimeUNIX, String senderName, String text) {

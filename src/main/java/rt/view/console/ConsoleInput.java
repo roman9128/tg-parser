@@ -6,16 +6,15 @@ import java.io.InputStreamReader;
 import java.io.Reader;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public final class ConsoleInput {
+final class ConsoleInput {
 
     private static final Object LOCK = new Object();
     private static InputStreamReader scanner = null;
 
-    public static String askParameter(String displayName, String question) {
+    static String askParameter(String displayName, String question) {
         synchronized (LOCK) {
             Console console = System.console();
             if (console != null) {
@@ -34,7 +33,7 @@ public final class ConsoleInput {
         }
     }
 
-    public static String readLine() {
+    static String readLine() {
         synchronized (LOCK) {
             Console console = System.console();
             if (console != null) {

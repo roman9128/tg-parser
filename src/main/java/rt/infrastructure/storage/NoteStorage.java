@@ -2,7 +2,7 @@ package rt.infrastructure.storage;
 
 import it.tdlight.jni.TdApi;
 import rt.model.entity.Note;
-import rt.model.storage.NoteStorageService;
+import rt.model.service.NoteStorageService;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedDeque;

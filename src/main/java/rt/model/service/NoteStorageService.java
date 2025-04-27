@@ -1,4 +1,4 @@
-package rt.model.storage;
+package rt.model.service;
 
 import it.tdlight.jni.TdApi;
 import rt.model.entity.Note;

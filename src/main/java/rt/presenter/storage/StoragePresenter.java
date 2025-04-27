@@ -1,6 +1,6 @@
 package rt.presenter.storage;
 
-import rt.model.storage.NoteStorageService;
+import rt.model.service.NoteStorageService;
 import rt.presenter.Presenter;
 import rt.view.View;
 
@@ -38,4 +38,8 @@ public class StoragePresenter implements Presenter {
         }
     }
 
+    public void clear() {
+        storage.clearAll();
+        view.print("Все загруженные сообщения удалены", true);
+    }
 }

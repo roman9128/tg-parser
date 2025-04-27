@@ -1,7 +1,7 @@
 package rt;
 
 import rt.infrastructure.storage.NoteStorage;
-import rt.model.storage.NoteStorageService;
+import rt.model.service.NoteStorageService;
 import rt.presenter.analyzer.AnalyzerPresenter;
 import rt.presenter.parser.ParserPresenter;
 import rt.presenter.recorder.RecorderPresenter;

@@ -9,9 +9,9 @@ import it.tdlight.client.SimpleTelegramClientFactory;
 import it.tdlight.client.TDLibSettings;
 import rt.infrastructure.parser.PhoneAuthentication;
 import rt.infrastructure.parser.TgParser;
-import rt.infrastructure.utils.PropertyHandler;
+import rt.infrastructure.config.PropertyHandler;
 import rt.model.service.ParserService;
-import rt.model.storage.NoteStorageService;
+import rt.model.service.NoteStorageService;
 import rt.presenter.Presenter;
 import rt.view.View;
 
@@ -74,10 +74,6 @@ public class ParserPresenter implements Presenter, ServiceHelper {
         ExecutorService loader = Executors.newSingleThreadExecutor();
         loader.execute(() -> service.loadChannelsHistory(folderIDString, dateFromString, dateToString));
         loader.shutdown();
-    }
-
-    public void clear() {
-        service.clear();
     }
 
     public void close() {

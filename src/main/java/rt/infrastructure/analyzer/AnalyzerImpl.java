@@ -1,9 +1,10 @@
 package rt.infrastructure.analyzer;
 
 import rt.model.service.AnalyzerService;
-import rt.model.storage.NoteStorageService;
+import rt.model.service.NoteStorageService;
 import rt.nlp.NLPClassifier;
 import rt.nlp.NLPModelFinder;
+import rt.model.service.ResponsePrinter;
 import rt.utils.RussianLanguageTokenizer;
 
 import java.io.IOException;
@@ -12,13 +13,20 @@ import java.util.List;
 
 public class AnalyzerImpl implements AnalyzerService {
 
-    private NoteStorageService storage;
+    private final NoteStorageService storage;
     private final NLPModelFinder modelFinder = new NLPModelFinder();
     private final NLPClassifier classifier = new NLPClassifier();
 
+    public AnalyzerImpl(NoteStorageService storage) {
+        this.storage = storage;
+    }
 
     @Override
-    public void classify() {
+    public void classify(ResponsePrinter responsePrinter) {
+        if (storage.noAnyNotes()) {
+            responsePrinter.printResponse("Нечего анализировать", true);
+            return;
+        }
         storage.getNotesCommonPool().forEach(note -> {
             String noteText = note.getText();
             List<String> topics = classifyNotes(noteText);
@@ -42,15 +50,5 @@ public class AnalyzerImpl implements AnalyzerService {
         } catch (IOException e) {
             return new ArrayList<>();
         }
-    }
-
-    @Override
-    public boolean storageIsEmpty() {
-        return storage.noAnyNotes();
-    }
-
-    @Override
-    public void setStorage(NoteStorageService storage) {
-        this.storage = storage;
     }
 }

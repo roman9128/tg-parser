@@ -1,4 +1,4 @@
-package rt.infrastructure.utils;
+package rt.infrastructure.config;
 
 import rt.infrastructure.recorder.FileRecorder;
 

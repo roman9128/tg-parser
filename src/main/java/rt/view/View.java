@@ -1,7 +1,6 @@
 package rt.view;
 
 import rt.presenter.Presenter;
-import rt.presenter.parser.ParserPresenter;
 
 import java.util.List;
 

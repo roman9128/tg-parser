@@ -1,6 +1,6 @@
 package rt.view.console;
 
-import rt.infrastructure.utils.PropertyHandler;
+import rt.infrastructure.config.PropertyHandler;
 import rt.presenter.Presenter;
 import rt.presenter.analyzer.AnalyzerPresenter;
 import rt.presenter.parser.ParserPresenter;
@@ -89,7 +89,9 @@ public class ConsoleUI implements View {
 
     @Override
     public void classify() {
-        analyzerPresenter.classify();
+        if (analyzerPresenter != null) {
+            analyzerPresenter.classify();
+        }
     }
 
     @Override
@@ -99,7 +101,7 @@ public class ConsoleUI implements View {
 
     @Override
     public void clear() {
-        parserPresenter.clear();
+        storagePresenter.clear();
     }
 
     @Override

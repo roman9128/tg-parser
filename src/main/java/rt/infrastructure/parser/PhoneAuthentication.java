@@ -15,7 +15,7 @@ public class PhoneAuthentication implements AuthenticationSupplier<Authenticatio
         final String botToken = null;
         final String phoneNumber;
 
-        State(String phoneNumber) {
+        private State(String phoneNumber) {
             this.phoneNumber = phoneNumber;
         }
 

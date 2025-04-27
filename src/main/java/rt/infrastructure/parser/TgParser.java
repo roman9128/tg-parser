@@ -3,11 +3,9 @@ package rt.infrastructure.parser;
 import it.tdlight.client.*;
 import it.tdlight.jni.TdApi;
 import rt.model.entity.*;
-import rt.infrastructure.utils.ParseMaster;
-import rt.infrastructure.utils.PropertyHandler;
-import rt.infrastructure.utils.Randomizer;
+import rt.infrastructure.config.PropertyHandler;
 import rt.model.service.ParserService;
-import rt.model.storage.NoteStorageService;
+import rt.model.service.NoteStorageService;
 import rt.presenter.parser.ServiceHelper;
 
 import java.time.LocalDate;
@@ -122,13 +120,13 @@ public class TgParser implements ParserService {
                     .append(": ")
                     .append(foldersInfo.get(folderID))
                     .append(System.lineSeparator());
-            for (Long channelId : chatsInFolders.get(folderID)) {
-                builder
-                        .append("\t")
-                        .append(" - ")
-                        .append(chats.get(channelId).title)
-                        .append(System.lineSeparator());
-            }
+//            for (Long channelId : chatsInFolders.get(folderID)) {
+//                builder
+//                        .append("\t")
+//                        .append(" - ")
+//                        .append(chats.get(channelId).title)
+//                        .append(System.lineSeparator());
+//            }
         }
         helper.print(builder.toString(), true);
     }
@@ -136,9 +134,9 @@ public class TgParser implements ParserService {
     @Override
     public void loadChannelsHistory(String folderIDString, String dateFromString, String dateToString) {
         stopLoadingNewChannels();
-        Integer folderID = ParseMaster.parseInteger(folderIDString);
-        Long dateFromUnix = ParseMaster.parseUnixDateStartOfDay(dateFromString);
-        Long dateToUnix = ParseMaster.parseUnixDateEndOfDay(dateToString);
+        Integer folderID = NumbersParserUtil.parseInteger(folderIDString);
+        Long dateFromUnix = NumbersParserUtil.parseUnixDateStartOfDay(dateFromString);
+        Long dateToUnix = NumbersParserUtil.parseUnixDateEndOfDay(dateToString);
         Long dateNowUnix = LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toEpochSecond();
 
         if (dateFromUnix >= dateToUnix) {
@@ -214,12 +212,6 @@ public class TgParser implements ParserService {
         }
         helper.print("Загрузка сообщений из " + chats.get(channelID).title + " закончена", true);
         chatHistoryLoader.zeroCounter();
-    }
-
-    @Override
-    public void clear() {
-        storage.clearAll();
-        helper.print("Все загруженные сообщения удалены", true);
     }
 
     private Long transferChatID(Long chatID) {
