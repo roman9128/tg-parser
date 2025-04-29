@@ -1,10 +1,11 @@
 package rt.infrastructure.analyzer;
 
+import rt.infrastructure.notifier.Notifier;
+import rt.model.notification.Notification;
 import rt.model.service.AnalyzerService;
 import rt.model.service.NoteStorageService;
 import rt.nlp.NLPClassifier;
 import rt.nlp.NLPModelFinder;
-import rt.model.service.ResponsePrinter;
 import rt.utils.RussianLanguageTokenizer;
 
 import java.io.IOException;
@@ -22,9 +23,9 @@ public class AnalyzerImpl implements AnalyzerService {
     }
 
     @Override
-    public void classify(ResponsePrinter responsePrinter) {
+    public void classify() {
         if (storage.noAnyNotes()) {
-            responsePrinter.printResponse("Нечего анализировать", true);
+            Notifier.getInstance().addNotification(new Notification("Нечего анализировать", true));
             return;
         }
         storage.getNotesCommonPool().forEach(note -> {

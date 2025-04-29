@@ -1,7 +1,7 @@
 package rt.infrastructure.storage;
 
 import it.tdlight.jni.TdApi;
-import rt.model.entity.Note;
+import rt.model.note.Note;
 import rt.model.service.NoteStorageService;
 
 import java.util.*;

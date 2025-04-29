@@ -1,6 +1,8 @@
 package rt.view.console;
 
 import rt.infrastructure.config.PropertyHandler;
+import rt.infrastructure.notifier.Notifier;
+import rt.model.notification.Notification;
 import rt.presenter.Presenter;
 import rt.presenter.analyzer.AnalyzerPresenter;
 import rt.presenter.parser.ParserPresenter;
@@ -9,8 +11,11 @@ import rt.presenter.storage.StoragePresenter;
 import rt.view.View;
 
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class ConsoleUI implements View {
+    private final ExecutorService executor = Executors.newSingleThreadExecutor();
     private ParserPresenter parserPresenter;
     private StoragePresenter storagePresenter;
     private RecorderPresenter recorderPresenter;
@@ -73,6 +78,26 @@ public class ConsoleUI implements View {
     }
 
     @Override
+    public void startNotificationListener() {
+        executor.execute(() -> {
+            while (!Thread.currentThread().isInterrupted()) {
+                try {
+                    Notification notification = Notifier.getInstance().getNotification();
+                    print(notification.getMessage(), notification.needNextLine());
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    break;
+                }
+            }
+        });
+    }
+
+    @Override
+    public void stopNotificationListener() {
+        executor.shutdownNow();
+    }
+
+    @Override
     public void show() {
         parserPresenter.show();
     }
@@ -91,6 +116,8 @@ public class ConsoleUI implements View {
     public void classify() {
         if (analyzerPresenter != null) {
             analyzerPresenter.classify();
+        } else {
+            print("Анализатор выключен", true);
         }
     }
 

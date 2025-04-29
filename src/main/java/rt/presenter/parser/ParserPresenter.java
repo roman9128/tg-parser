@@ -7,9 +7,12 @@ import it.tdlight.client.APIToken;
 import it.tdlight.client.SimpleTelegramClientBuilder;
 import it.tdlight.client.SimpleTelegramClientFactory;
 import it.tdlight.client.TDLibSettings;
+import rt.infrastructure.notifier.Notifier;
 import rt.infrastructure.parser.PhoneAuthentication;
 import rt.infrastructure.parser.TgParser;
 import rt.infrastructure.config.PropertyHandler;
+import rt.model.notification.Notification;
+import rt.model.service.ParameterRequester;
 import rt.model.service.ParserService;
 import rt.model.service.NoteStorageService;
 import rt.presenter.Presenter;
@@ -21,7 +24,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-public class ParserPresenter implements Presenter, ServiceHelper {
+public class ParserPresenter implements Presenter, ParameterRequester {
 
     private ParserService service;
     private final View view;
@@ -45,6 +48,7 @@ public class ParserPresenter implements Presenter, ServiceHelper {
                 PhoneAuthentication authData = new PhoneAuthentication(this);
                 try (TgParser tgParser = new TgParser(clientBuilder, authData, storage, this)) {
                     service = tgParser;
+                    startInteractions();
                     service.waitForExit();
                     Thread.sleep(100); // ожидание завершения соединения с TDLib
                 } catch (Exception e) {
@@ -58,10 +62,9 @@ public class ParserPresenter implements Presenter, ServiceHelper {
         }
     }
 
-    @Override
-    public void startInteractions() {
+    private void startInteractions() {
         CompletableFuture.runAsync(view::startInteractions).exceptionally(e -> {
-            System.out.println("Ошибка в консольном потоке: " + e.getMessage());
+            Notifier.getInstance().addNotification(new Notification("Ошибка в консольном потоке: " + e.getMessage(), true));
             return null;
         });
     }
@@ -82,11 +85,6 @@ public class ParserPresenter implements Presenter, ServiceHelper {
 
     public void logout() {
         service.logout();
-    }
-
-    @Override
-    public void print(String text, boolean needNextLine) {
-        view.print(text, needNextLine);
     }
 
     @Override

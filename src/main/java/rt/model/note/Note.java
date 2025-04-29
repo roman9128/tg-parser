@@ -1,4 +1,4 @@
-package rt.model.entity;
+package rt.model.note;
 
 import java.time.Instant;
 import java.time.LocalDateTime;

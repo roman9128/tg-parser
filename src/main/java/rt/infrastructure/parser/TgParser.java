@@ -2,11 +2,13 @@ package rt.infrastructure.parser;
 
 import it.tdlight.client.*;
 import it.tdlight.jni.TdApi;
-import rt.model.entity.*;
+import rt.infrastructure.notifier.Notifier;
+import rt.model.note.*;
 import rt.infrastructure.config.PropertyHandler;
+import rt.model.notification.Notification;
+import rt.model.service.ParameterRequester;
 import rt.model.service.ParserService;
 import rt.model.service.NoteStorageService;
-import rt.presenter.parser.ServiceHelper;
 
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -18,7 +20,6 @@ import java.util.concurrent.Executors;
 public class TgParser implements ParserService {
 
     private final SimpleTelegramClient client;
-    private final ServiceHelper helper;
     private final ChatHistoryLoader chatHistoryLoader = new ChatHistoryLoader();
     private final ExecutorService blockingExecutor = Executors.newSingleThreadExecutor();
     private final ConcurrentMap<Long, TdApi.Chat> chats = new ConcurrentHashMap<>();
@@ -30,31 +31,29 @@ public class TgParser implements ParserService {
 
     public TgParser(SimpleTelegramClientBuilder clientBuilder,
                     PhoneAuthentication authenticationData,
-                    NoteStorageService storage, ServiceHelper helper) {
+                    NoteStorageService storage, ParameterRequester parameterRequester) {
         this.storage = storage;
-        this.helper = helper;
         clientBuilder.addUpdateHandler(TdApi.UpdateAuthorizationState.class, this::onUpdateAuthorizationState);
         clientBuilder.addUpdateHandler(TdApi.UpdateNewChat.class, this::onUpdateChat);
         clientBuilder.addUpdateHandler(TdApi.UpdateSupergroup.class, this::onUpdateSuperGroup);
         clientBuilder.addUpdateHandler(TdApi.UpdateChatFolders.class, this::onUpdateFolder);
         this.client = clientBuilder.build(authenticationData);
-        client.setClientInteraction(new ClientInteractionImpl(blockingExecutor, client, helper));
+        client.setClientInteraction(new ClientInteractionImpl(blockingExecutor, client, parameterRequester));
     }
 
     private void onUpdateAuthorizationState(TdApi.UpdateAuthorizationState update) {
         TdApi.AuthorizationState authorizationState = update.authorizationState;
         if (authorizationState instanceof TdApi.AuthorizationStateReady) {
-            helper.print("Авторизован", true);
-            helper.print("Начинаю загрузку чатов, каналов, папок", true);
+            Notifier.getInstance().addNotification(new Notification("Авторизован", true));
+            Notifier.getInstance().addNotification(new Notification("Начинаю загрузку чатов, каналов, папок", true));
             getChats();
             getChannels();
             getFoldersInfo();
             stopBlockingExecutor();
-            helper.startInteractions();
         } else if (authorizationState instanceof TdApi.AuthorizationStateClosed) {
-            helper.print("Соединение закрыто", true);
+            Notifier.getInstance().addNotification(new Notification("Соединение закрыто", true));
         } else if (authorizationState instanceof TdApi.AuthorizationStateLoggingOut) {
-            helper.print("Не авторизован", true);
+            Notifier.getInstance().addNotification(new Notification("Не авторизован", true));
         }
     }
 
@@ -91,7 +90,7 @@ public class TgParser implements ParserService {
             try {
                 Thread.sleep(2000);
             } catch (InterruptedException e) {
-                helper.print(e.getMessage(), true);
+                Notifier.getInstance().addNotification(new Notification(e.getMessage(), true));
             }
             getChatsFromFolders();
         });
@@ -102,7 +101,7 @@ public class TgParser implements ParserService {
         for (int folderID : foldersInfo.keySet()) {
             client.send(new TdApi.GetChatFolder(folderID)).whenCompleteAsync((folder, error) -> {
                 if (error != null) {
-                    helper.print("Ошибка при получении содержимого папок: " + error.getMessage(), true);
+                    Notifier.getInstance().addNotification(new Notification("Ошибка при получении содержимого папок: " + error.getMessage(), true));
                 } else {
                     chatsInFolders.put(folderID, folder.includedChatIds);
                 }
@@ -128,7 +127,7 @@ public class TgParser implements ParserService {
 //                        .append(System.lineSeparator());
 //            }
         }
-        helper.print(builder.toString(), true);
+        Notifier.getInstance().addNotification(new Notification(builder.toString(), true));
     }
 
     @Override
@@ -140,11 +139,11 @@ public class TgParser implements ParserService {
         Long dateNowUnix = LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toEpochSecond();
 
         if (dateFromUnix >= dateToUnix) {
-            helper.print("Вторая дата не может быть больше первой", true);
+            Notifier.getInstance().addNotification(new Notification("Вторая дата не может быть больше первой", true));
             return;
         }
         if (dateFromUnix > dateNowUnix) {
-            helper.print("Этот день ещё не наступил", true);
+            Notifier.getInstance().addNotification(new Notification("Этот день ещё не наступил", true));
             return;
         }
 
@@ -152,26 +151,26 @@ public class TgParser implements ParserService {
         chatHistoryLoader.setDateToUnix(dateToUnix);
 
         if (folderID == null) {
-            helper.print("Начинаю загрузку со всех каналов", true);
+            Notifier.getInstance().addNotification(new Notification("Начинаю загрузку со всех каналов", true));
             for (Long channelID : supergroups.keySet()) {
                 loadChatHistory(channelID, dateFromUnix);
             }
         } else {
             if (chatsInFolders.containsKey(folderID)) {
-                helper.print("Начинаю загрузку сообщений из папки " + foldersInfo.get(folderID), true);
+                Notifier.getInstance().addNotification(new Notification("Начинаю загрузку сообщений из папки " + foldersInfo.get(folderID), true));
                 for (Long chatID : chatsInFolders.get(folderID)) {
                     if (supergroups.containsKey(chatID)) {
                         loadChatHistory(chatID, dateFromUnix);
                     }
                 }
             } else {
-                helper.print("Нет такой папки", true);
+                Notifier.getInstance().addNotification(new Notification("Нет такой папки", true));
                 return;
             }
         }
         chatHistoryLoader.removeSurplus();
         prepareNotes();
-        helper.print("Всего загружено " + storage.getAllNotesQuantity() + " сообщ., соотв. заданным параметрам", true);
+        Notifier.getInstance().addNotification(new Notification("Всего загружено " + storage.getAllNotesQuantity() + " сообщ., соотв. заданным параметрам", true));
     }
 
     private void loadChatHistory(Long channelID, Long dateFromUnix) {
@@ -185,14 +184,14 @@ public class TgParser implements ParserService {
             try {
                 Thread.sleep(Randomizer.giveNumber());
             } catch (InterruptedException e) {
-                helper.print(e.getMessage(), true);
+                Notifier.getInstance().addNotification(new Notification(e.getMessage(), true));
             }
             if (!chatHistoryLoader.isEmpty()) {
                 fromMessageID = chatHistoryLoader.getLastMessageID();
                 messagesLeft -= chatHistoryLoader.getCountArrived();
                 messagesToStop -= chatHistoryLoader.getCountArrived();
             }
-            helper.print(chatHistoryLoader.getAmountOfReceivedMsg() + " сообщ. предварительно загружено", false);
+            Notifier.getInstance().addNotification(new Notification(chatHistoryLoader.getAmountOfReceivedMsg() + " сообщ. предварительно загружено", false));
             if (chatHistoryLoader.getCountArrived() == 0) {
                 break;
             }
@@ -210,7 +209,7 @@ public class TgParser implements ParserService {
                 }
             }
         }
-        helper.print("Загрузка сообщений из " + chats.get(channelID).title + " закончена", true);
+        Notifier.getInstance().addNotification(new Notification("Загрузка сообщений из " + chats.get(channelID).title + " закончена", true));
         chatHistoryLoader.zeroCounter();
     }
 
@@ -221,7 +220,7 @@ public class TgParser implements ParserService {
     @Override
     public void logout() {
         client.send(new TdApi.LogOut()).thenAccept(ok -> {
-            helper.print("Вышел из аккаунта", true);
+            Notifier.getInstance().addNotification(new Notification("Вышел из аккаунта", true));
         });
     }
 
@@ -261,7 +260,7 @@ public class TgParser implements ParserService {
                 .whenCompleteAsync((link, error) -> {
                     if (error != null) {
                         note.setMsgLink("Не удалось получить ссылку");
-                        helper.print("Ошибка при запросе ссылки: " + error.getMessage(), true);
+                        Notifier.getInstance().addNotification(new Notification("Ошибка при запросе ссылки: " + error.getMessage(), true));
                     } else {
                         note.setMsgLink(link.link);
                     }

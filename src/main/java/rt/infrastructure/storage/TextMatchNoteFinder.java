@@ -1,6 +1,6 @@
 package rt.infrastructure.storage;
 
-import rt.model.entity.Note;
+import rt.model.note.Note;
 
 import java.util.Arrays;
 

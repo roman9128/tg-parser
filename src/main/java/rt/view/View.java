@@ -9,6 +9,10 @@ public interface View {
 
     void startInteractions();
 
+    void startNotificationListener();
+
+    void stopNotificationListener();
+
     void show();
 
     void load(String folderIDString, String dateFromString, String dateToString);

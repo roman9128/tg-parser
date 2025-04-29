@@ -1,7 +1,7 @@
 package rt.infrastructure.parser;
 
 import it.tdlight.client.*;
-import rt.presenter.parser.PrinterScanner;
+import rt.model.service.ParameterRequester;
 
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
@@ -10,12 +10,12 @@ import java.util.concurrent.ExecutorService;
 class ClientInteractionImpl implements ClientInteraction {
     private final ExecutorService blockingExecutor;
     private final Authenticable authenticable;
-    private final PrinterScanner printerScanner;
+    private final ParameterRequester parameterRequester;
 
-    ClientInteractionImpl(ExecutorService blockingExecutor, Authenticable authenticable, PrinterScanner printerScanner) {
+    ClientInteractionImpl(ExecutorService blockingExecutor, Authenticable authenticable, ParameterRequester parameterRequester) {
         this.blockingExecutor = blockingExecutor;
         this.authenticable = authenticable;
-        this.printerScanner = printerScanner;
+        this.parameterRequester = parameterRequester;
     }
 
     @Override
@@ -48,7 +48,7 @@ class ClientInteractionImpl implements ClientInteraction {
                 default:
                     question = parameter.toString();
             }
-            String result = printerScanner.askParameter(who, question);
+            String result = parameterRequester.askParameter(who, question);
             return trim ? result.trim() : Objects.requireNonNull(result);
         }, this.blockingExecutor);
     }

@@ -1,7 +1,7 @@
 package rt.model.service;
 
 import it.tdlight.jni.TdApi;
-import rt.model.entity.Note;
+import rt.model.note.Note;
 
 public interface NoteStorageService {
     void createNote(TdApi.Message message, String senderName);
