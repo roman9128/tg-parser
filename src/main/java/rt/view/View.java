@@ -17,7 +17,7 @@ public interface View {
 
     void load(String folderIDString, String dateFromString, String dateToString);
 
-    void find(String argsAsString);
+    void find(String[] args);
 
     void write(String value);
 

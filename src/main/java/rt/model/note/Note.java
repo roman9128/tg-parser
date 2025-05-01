@@ -4,9 +4,8 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.util.List;
-import java.util.Locale;
-import java.util.Objects;
+import java.util.*;
+import java.util.stream.Collectors;
 
 public class Note {
     private final Long messageID;
@@ -15,7 +14,7 @@ public class Note {
     private final LocalDateTime msgTime;
     private final String text;
     private String msgLink;
-    private List<String> keyWords;
+    private final Map<String, Double> keyWords = new HashMap<>();
 
     public Note(Long messageID, Long senderID, Integer msgTimeUNIX, String senderName, String text) {
         this.messageID = messageID;
@@ -29,8 +28,8 @@ public class Note {
         msgLink = link;
     }
 
-    public void setKeyWords(List<String> keyWords) {
-        this.keyWords = keyWords;
+    public void setKeyWords(Map<String, Double> keyWords) {
+        this.keyWords.putAll(keyWords);
     }
 
     private LocalDateTime convertDateTime(Integer msgTimeUNIX) {
@@ -59,12 +58,25 @@ public class Note {
         return text;
     }
 
-    private String getKeyWords() {
-        if (keyWords == null || keyWords.isEmpty()) {
+    public Map<String, Double> getKeyWords() {
+        return keyWords;
+    }
+
+    private String getKeyWordsAsText() {
+        if (keyWords.isEmpty()) {
             return "не определена";
         } else {
-            return String.join(" ", keyWords);
+            return stringify(keyWords);
         }
+    }
+
+    private String stringify(Map<String, Double> keyWords) {
+        Map<String, Double> sortedMap = keyWords.entrySet().stream()
+                .sorted(Map.Entry.comparingByValue(Comparator.reverseOrder()))
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (e1, e2) -> e1, LinkedHashMap::new));
+        return sortedMap.entrySet().stream()
+                .map(entry -> entry.getKey() + ": " + String.format("%.2f", entry.getValue()) + "%")
+                .collect(Collectors.joining(", "));
     }
 
     public boolean hasLink() {
@@ -97,7 +109,7 @@ public class Note {
                 .append(System.lineSeparator())
                 .append("Текст: ").append(text)
                 .append(System.lineSeparator())
-                .append("Тема: ").append(getKeyWords())
+                .append("Тема: ").append(getKeyWordsAsText())
                 .append(System.lineSeparator())
                 .append("}")
                 .append(System.lineSeparator());

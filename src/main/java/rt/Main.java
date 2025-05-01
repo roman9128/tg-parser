@@ -21,7 +21,7 @@ public class Main {
         StoragePresenter storagePresenter = new StoragePresenter(view, storage);
         RecorderPresenter recorderPresenter = new RecorderPresenter(view, storage);
         AnalyzerPresenter analyzerPresenter = new AnalyzerPresenter(view, storage);
-        view.setPresenters(List.of(parserPresenter, storagePresenter, recorderPresenter));
+        view.setPresenters(List.of(parserPresenter, storagePresenter, recorderPresenter, analyzerPresenter));
 
         view.startNotificationListener();
         parserPresenter.initService();

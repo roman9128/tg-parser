@@ -3,6 +3,8 @@ package rt.model.service;
 import it.tdlight.jni.TdApi;
 import rt.model.note.Note;
 
+import java.util.Map;
+
 public interface NoteStorageService {
     void createNote(TdApi.Message message, String senderName);
 
@@ -14,9 +16,11 @@ public interface NoteStorageService {
 
     boolean noSuitableNotes();
 
-    void findNotes(String[] args);
+    void findNotesByText(String how, String[] what);
 
-    String getStat();
+    void findNotesByTopic(String how, Map<String, Double> what);
+
+    String getWordsStat();
 
     Iterable<Note> getNotesCommonPool();
 

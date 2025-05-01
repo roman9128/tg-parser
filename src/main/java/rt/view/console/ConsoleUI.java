@@ -26,7 +26,7 @@ public class ConsoleUI implements View {
         this.parserPresenter = (ParserPresenter) presenters.get(0);
         this.storagePresenter = (StoragePresenter) presenters.get(1);
         this.recorderPresenter = (RecorderPresenter) presenters.get(2);
-//        this.analyzerPresenter = (AnalyzerPresenter) presenters.get(3);
+        this.analyzerPresenter = (AnalyzerPresenter) presenters.get(3);
     }
 
     @Override
@@ -45,7 +45,7 @@ public class ConsoleUI implements View {
                         load(args[1], args[2], args[3]);
                     }
                     case "find" -> {
-                        find(args[1] + " " + args[2] + " " + args[3]);
+                        find(new String[]{args[1], args[2], args[3]});
                     }
                     case "class" -> {
                         classify();
@@ -108,8 +108,8 @@ public class ConsoleUI implements View {
     }
 
     @Override
-    public void find(String argsAsString) {
-        storagePresenter.find(argsAsString);
+    public void find(String[] args) {
+        storagePresenter.find(args);
     }
 
     @Override
@@ -144,11 +144,11 @@ public class ConsoleUI implements View {
     private void printMenu() {
         System.out.println("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *" + System.lineSeparator()
                 + "*          Команды для управления программой:" + System.lineSeparator()
-                + "*" + System.lineSeparator()
+                + "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *" + System.lineSeparator()
                 + "* menu - показать меню" + System.lineSeparator()
-                + "*" + System.lineSeparator()
+                + "* * * * * * * * * * * * * *" + System.lineSeparator()
                 + "* show - посмотреть список папок" + System.lineSeparator()
-                + "*" + System.lineSeparator()
+                + "* * * * * * * * * * * * * *" + System.lineSeparator()
                 + "* команды для загрузки сообщений строятся по схеме:" + System.lineSeparator()
                 + "* load X DD.MM.YYYY DD.MM.YYYY" + System.lineSeparator()
                 + "* вместо Х может быть:" + System.lineSeparator()
@@ -160,17 +160,29 @@ public class ConsoleUI implements View {
                 + "* - если указано две даты, то загрузятся сообщения с начала первого указанного дня до конца второго указанного дня" + System.lineSeparator()
                 + "* первый параметр (Х) можно не указывать, если далее нет дат" + System.lineSeparator()
                 + "* все слова, параметры в команде load пишутся через один пробел" + System.lineSeparator()
-                + "*" + System.lineSeparator()
-                + "* find X - найти сообщения с хотя бы одним из указанных слов, вместо Х указать необходимые слова через один пробел" + System.lineSeparator()
-                + "*" + System.lineSeparator()
+                + "* * * * * * * * * * * * * *" + System.lineSeparator()
+                + "* команды для поиска сообщений строятся по схеме:" + System.lineSeparator()
+                + "* find HOW WHERE WHAT" + System.lineSeparator()
+                + "* вместо HOW может быть:" + System.lineSeparator()
+                + "* - and для поиска сообщений, удовлетворяющих всем параметрам" + System.lineSeparator()
+                + "* - or для поиска сообщений, удовлетворяющих хотя бы одному условию" + System.lineSeparator()
+                + "* - not для поиска сообщений, не удовлетворяющих заданным условиям" + System.lineSeparator()
+                + "* вместо WHERE может быть:" + System.lineSeparator()
+                + "* - topic для поиска по тематикам" + System.lineSeparator()
+                + "* - text для поиска по тексту" + System.lineSeparator()
+                + "* вместо WHAT нужно указать необходимые слова через один пробел" + System.lineSeparator()
+                + "* при поиске по категориям можно слитно с категорией через дефис указать процент соответствия текста данной категории" + System.lineSeparator()
+                + "* например: find topic экономика-50 политика-60" + System.lineSeparator()
+                + "* все параметры в команде find пишутся через один пробел" + System.lineSeparator()
+                + "* * * * * * * * * * * * * *" + System.lineSeparator()
                 + "* class - определить тематики сообщений (найдёт только те, на которые натренирован анализатор)" + System.lineSeparator()
-                + "*" + System.lineSeparator()
+                + "* * * * * * * * * * * * * *" + System.lineSeparator()
                 + "* write - записать в файл" + System.lineSeparator()
-                + "*" + System.lineSeparator()
+                + "* * * * * * * * * * * * * *" + System.lineSeparator()
                 + "* clear - удалить загруженное" + System.lineSeparator()
-                + "*" + System.lineSeparator()
+                + "* * * * * * * * * * * * * *" + System.lineSeparator()
                 + "* stop - выход (авторизация сохранена)" + System.lineSeparator()
-                + "*" + System.lineSeparator()
+                + "* * * * * * * * * * * * * *" + System.lineSeparator()
                 + "* logout - выйти из аккаунта" + System.lineSeparator()
                 + "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *" + System.lineSeparator());
     }

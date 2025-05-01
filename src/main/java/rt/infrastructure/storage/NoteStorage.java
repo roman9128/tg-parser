@@ -13,7 +13,7 @@ public class NoteStorage implements NoteStorageService {
     private final ConcurrentLinkedDeque<Note> notes = new ConcurrentLinkedDeque<>();
     private Deque<Note> chosen_notes = new ArrayDeque<>();
     private final HashMap<String, Integer> argsMap = new HashMap<>();
-    private final TextMatchNoteFinder noteFinder = new TextMatchNoteFinder();
+    private final NoteFinder noteFinder = new NoteFinder();
     private final NotesCounter notesCounter = new NotesCounter();
 
     @Override
@@ -84,15 +84,29 @@ public class NoteStorage implements NoteStorageService {
     }
 
     @Override
-    public void findNotes(String[] args) {
-        Arrays.stream(args).forEach(arg -> argsMap.put(arg, 0));
-        addSuitableNoteWithOneOfArgs(args);
+    public void findNotesByText(String how, String[] what) {
+        Arrays.stream(what).forEach(arg -> argsMap.put(arg, 0));
+        for (Note note : notes) {
+            if (noteFinder.textMeetsConditions(note, how, what)) {
+                chosen_notes.addLast(note);
+            }
+        }
         removeCopies();
         countNotesWithArgs();
     }
 
     @Override
-    public String getStat() {
+    public void findNotesByTopic(String how, Map<String, Double> what) {
+        for (Note note : notes) {
+            if (noteFinder.topicsMeetConditions(note, how, what)) {
+                chosen_notes.addLast(note);
+            }
+        }
+        removeCopies();
+    }
+
+    @Override
+    public String getWordsStat() {
         Map<String, Integer> sortedMap = argsMap.entrySet().stream()
                 .sorted(Map.Entry.comparingByValue(Comparator.reverseOrder()))
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (e1, e2) -> e1, LinkedHashMap::new));
@@ -109,14 +123,6 @@ public class NoteStorage implements NoteStorageService {
     @Override
     public Deque<Note> getChosenNotesPool() {
         return chosen_notes;
-    }
-
-    private void addSuitableNoteWithOneOfArgs(String[] args) {
-        for (Note note : notes) {
-            if (noteFinder.noteContainsOneOfArgs(note, args)) {
-                chosen_notes.addLast(note);
-            }
-        }
     }
 
     private void removeCopies() {
