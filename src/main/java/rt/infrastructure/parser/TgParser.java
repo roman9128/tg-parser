@@ -6,6 +6,7 @@ import rt.infrastructure.notifier.Notifier;
 import rt.model.note.*;
 import rt.infrastructure.config.PropertyHandler;
 import rt.model.notification.Notification;
+import rt.model.service.InteractionStarter;
 import rt.model.service.ParameterRequester;
 import rt.model.service.ParserService;
 import rt.model.service.NoteStorageService;
@@ -27,12 +28,14 @@ public class TgParser implements ParserService {
     private final ConcurrentMap<Integer, long[]> chatsInFolders = new ConcurrentHashMap<>();
     private final ConcurrentMap<Long, TdApi.Supergroup> supergroups = new ConcurrentHashMap<>();
     private final NoteStorageService storage;
+    private final InteractionStarter starter;
     private volatile boolean isReadyToLoadNewChannels = true;
 
     public TgParser(SimpleTelegramClientBuilder clientBuilder,
                     PhoneAuthentication authenticationData,
-                    NoteStorageService storage, ParameterRequester parameterRequester) {
+                    NoteStorageService storage, ParameterRequester parameterRequester, InteractionStarter starter) {
         this.storage = storage;
+        this.starter = starter;
         clientBuilder.addUpdateHandler(TdApi.UpdateAuthorizationState.class, this::onUpdateAuthorizationState);
         clientBuilder.addUpdateHandler(TdApi.UpdateNewChat.class, this::onUpdateChat);
         clientBuilder.addUpdateHandler(TdApi.UpdateSupergroup.class, this::onUpdateSuperGroup);
@@ -50,6 +53,7 @@ public class TgParser implements ParserService {
             getChannels();
             getFoldersInfo();
             stopBlockingExecutor();
+            starter.startInteractions();
         } else if (authorizationState instanceof TdApi.AuthorizationStateClosed) {
             Notifier.getInstance().addNotification(new Notification("Соединение закрыто", true));
         } else if (authorizationState instanceof TdApi.AuthorizationStateLoggingOut) {

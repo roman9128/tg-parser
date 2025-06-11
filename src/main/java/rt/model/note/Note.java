@@ -75,7 +75,7 @@ public class Note {
                 .sorted(Map.Entry.comparingByValue(Comparator.reverseOrder()))
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (e1, e2) -> e1, LinkedHashMap::new));
         return sortedMap.entrySet().stream()
-                .map(entry -> entry.getKey() + ": " + String.format("%.2f", entry.getValue()) + "%")
+                .map(entry -> entry.getKey() + " (" + String.format("%.2f", entry.getValue()) + "%)")
                 .collect(Collectors.joining(", "));
     }
 

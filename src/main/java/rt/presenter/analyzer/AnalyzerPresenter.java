@@ -11,9 +11,9 @@ public class AnalyzerPresenter implements Presenter {
     private final View view;
     private final AnalyzerService service;
 
-    public AnalyzerPresenter(View view, NoteStorageService storage) {
+    public AnalyzerPresenter(View view, AnalyzerService service) {
         this.view = view;
-        this.service = new AnalyzerImpl(storage);
+        this.service = service;
     }
 
     public void classify() {

@@ -4,25 +4,19 @@ import rt.infrastructure.notifier.Notifier;
 import rt.model.notification.Notification;
 import rt.model.service.AnalyzerService;
 import rt.model.service.NoteStorageService;
-import rt.nlp.NLPClassifier;
-import rt.nlp.NLPModelFinder;
-import rt.utils.RussianLanguageTokenizer;
 
-import java.io.IOException;
+import rt.nlp.NLPService;
+
 import java.util.Map;
 
 public class AnalyzerImpl implements AnalyzerService {
 
     private final NoteStorageService storage;
-    private final NLPClassifier classifier = new NLPClassifier();
+    private final NLPService service;
 
-    public AnalyzerImpl(NoteStorageService storage) {
+    public AnalyzerImpl(NoteStorageService storage, NLPService service) {
         this.storage = storage;
-        try {
-            classifier.setModels(new NLPModelFinder().getModels());
-        } catch (IOException e) {
-            Notifier.getInstance().addNotification(new Notification(e.getMessage(), true));
-        }
+        this.service = service;
     }
 
     @Override
@@ -31,24 +25,19 @@ public class AnalyzerImpl implements AnalyzerService {
             Notifier.getInstance().addNotification(new Notification("Нечего анализировать", true));
             return;
         }
-        Notifier.getInstance().addNotification(new Notification("Начинаю анализировать", false));
+        Notifier.getInstance().addNotification(new Notification("Начинаю анализировать", true));
         storage.getNotesCommonPool().forEach(note -> {
             String noteText = note.getText();
-            Map<String, Double> topics = classifyNotes(noteText);
+            Map<String, Double> topics = service.classify(noteText);
             note.setKeyWords(topics);
         });
         if (!storage.noSuitableNotes()) {
             storage.getChosenNotesPool().forEach(note -> {
                 String noteText = note.getText();
-                Map<String, Double> topics = classifyNotes(noteText);
+                Map<String, Double> topics = service.classify(noteText);
                 note.setKeyWords(topics);
             });
         }
         Notifier.getInstance().addNotification(new Notification("Анализ закончен", true));
-    }
-
-    private Map<String, Double> classifyNotes(String text) {
-        String[] tokenizedText = RussianLanguageTokenizer.tokenize(text);
-        return classifier.classify(tokenizedText);
     }
 }

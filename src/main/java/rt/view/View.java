@@ -2,10 +2,8 @@ package rt.view;
 
 import rt.presenter.Presenter;
 
-import java.util.List;
-
 public interface View {
-    void setPresenters(List<Presenter> presenters);
+    void setPresenters(Presenter presenter1, Presenter presenter2, Presenter presenter3, Presenter presenter4);
 
     void startInteractions();
 
@@ -25,7 +23,7 @@ public interface View {
 
     void clear();
 
-    void stop();
+    void stopParser();
 
     void logout();
 

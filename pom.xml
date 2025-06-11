@@ -56,22 +56,6 @@
             <artifactId>tdlight-natives</artifactId>
             <classifier>windows_amd64</classifier>
         </dependency>
-
-        <!--        <dependency>-->
-        <!--            <groupId>org.apache.lucene</groupId>-->
-        <!--            <artifactId>lucene-core</artifactId>-->
-        <!--            <version>10.2.0</version>-->
-        <!--        </dependency>-->
-        <!--        <dependency>-->
-        <!--            <groupId>org.apache.lucene</groupId>-->
-        <!--            <artifactId>lucene-analysis-common</artifactId>-->
-        <!--            <version>10.2.0</version>-->
-        <!--        </dependency>-->
-        <!--        <dependency>-->
-        <!--            <groupId>org.apache.lucene</groupId>-->
-        <!--            <artifactId>lucene-queryparser</artifactId>-->
-        <!--            <version>10.2.0</version>-->
-        <!--        </dependency>-->
     </dependencies>
 
     <build>

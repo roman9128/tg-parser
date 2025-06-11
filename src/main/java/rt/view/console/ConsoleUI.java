@@ -10,7 +10,6 @@ import rt.presenter.recorder.RecorderPresenter;
 import rt.presenter.storage.StoragePresenter;
 import rt.view.View;
 
-import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -22,11 +21,15 @@ public class ConsoleUI implements View {
     private AnalyzerPresenter analyzerPresenter;
 
     @Override
-    public void setPresenters(List<Presenter> presenters) {
-        this.parserPresenter = (ParserPresenter) presenters.get(0);
-        this.storagePresenter = (StoragePresenter) presenters.get(1);
-        this.recorderPresenter = (RecorderPresenter) presenters.get(2);
-        this.analyzerPresenter = (AnalyzerPresenter) presenters.get(3);
+    public void setPresenters(Presenter presenter1, Presenter presenter2, Presenter presenter3, Presenter presenter4) {
+        this.parserPresenter = (ParserPresenter) presenter1;
+        this.storagePresenter = (StoragePresenter) presenter2;
+        this.recorderPresenter = (RecorderPresenter) presenter3;
+        if (presenter4 instanceof AnalyzerPresenter) {
+            this.analyzerPresenter = (AnalyzerPresenter) presenter4;
+        } else {
+            this.analyzerPresenter = null;
+        }
     }
 
     @Override
@@ -57,7 +60,7 @@ public class ConsoleUI implements View {
                         clear();
                     }
                     case "stop" -> {
-                        stop();
+                        stopParser();
                         return;
                     }
                     case "logout" -> {
@@ -132,7 +135,7 @@ public class ConsoleUI implements View {
     }
 
     @Override
-    public void stop() {
+    public void stopParser() {
         parserPresenter.close();
     }
 
@@ -159,7 +162,7 @@ public class ConsoleUI implements View {
                 + "* - если указана одна дата, то загрузятся сообщения с начала указанного дня до текущего момента" + System.lineSeparator()
                 + "* - если указано две даты, то загрузятся сообщения с начала первого указанного дня до конца второго указанного дня" + System.lineSeparator()
                 + "* первый параметр (Х) можно не указывать, если далее нет дат" + System.lineSeparator()
-                + "* все слова, параметры в команде load пишутся через один пробел" + System.lineSeparator()
+                + "* параметры в команде load пишутся через один пробел" + System.lineSeparator()
                 + "* * * * * * * * * * * * * *" + System.lineSeparator()
                 + "* команды для поиска сообщений строятся по схеме:" + System.lineSeparator()
                 + "* find HOW WHERE WHAT" + System.lineSeparator()
@@ -172,8 +175,8 @@ public class ConsoleUI implements View {
                 + "* - text для поиска по тексту" + System.lineSeparator()
                 + "* вместо WHAT нужно указать необходимые слова через один пробел" + System.lineSeparator()
                 + "* при поиске по категориям можно слитно с категорией через дефис указать процент соответствия текста данной категории" + System.lineSeparator()
-                + "* например: find topic экономика-50 политика-60" + System.lineSeparator()
-                + "* все параметры в команде find пишутся через один пробел" + System.lineSeparator()
+                + "* например: find and topic экономика-50 политика-60" + System.lineSeparator()
+                + "* параметры в команде find пишутся через один пробел" + System.lineSeparator()
                 + "* * * * * * * * * * * * * *" + System.lineSeparator()
                 + "* class - определить тематики сообщений (найдёт только те, на которые натренирован анализатор)" + System.lineSeparator()
                 + "* * * * * * * * * * * * * *" + System.lineSeparator()
