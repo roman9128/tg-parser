@@ -64,8 +64,8 @@ public class PhoneAuthentication implements AuthenticationSupplier<Authenticatio
                 try {
                     String phoneNumber;
                     do {
-                        phoneNumber = parameterRequester.askParameter("new user", "enter your phone number");
-                    } while (phoneNumber.length() < 3);
+                        phoneNumber = parameterRequester.askParameter("Новый пользователь", "Введите номер телефона" + System.lineSeparator() + "в международном формате" + System.lineSeparator() + "(например 79123456789)");
+                    } while (phoneNumber.length() < 9 || !phoneNumber.matches("\\d+"));
                     cf.complete(new State(phoneNumber));
                 } catch (Throwable ex) {
                     cf.completeExceptionally(ex);

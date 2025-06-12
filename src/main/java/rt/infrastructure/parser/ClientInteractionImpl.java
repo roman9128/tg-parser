@@ -26,7 +26,7 @@ class ClientInteractionImpl implements ClientInteraction {
             boolean useRealWho = authData != null;
             String who;
             if (!useRealWho) {
-                who = "new user";
+                who = "Новый пользователь";
             } else {
                 who = "+" + authData.getUserPhoneNumber();
             }
@@ -34,16 +34,16 @@ class ClientInteractionImpl implements ClientInteraction {
             String question;
             switch (parameter) {
                 case ASK_CODE:
-                    question = "Enter authentication code";
+                    question = "Введите код подтверждения";
                     ParameterInfoCode codeInfo = (ParameterInfoCode) parameterInfo;
-                    question = question + "\n\tCode type: " + codeInfo.getType().getClass().getSimpleName().replace("AuthenticationCodeType", "");
+                    question = question + System.lineSeparator() + "Тип кода: " + codeInfo.getType().getClass().getSimpleName().replace("AuthenticationCodeType", "");
                     if (codeInfo.getNextType() != null) {
-                        question = question + "\n\tNext code type: " + codeInfo.getNextType().getClass().getSimpleName().replace("AuthenticationCodeType", "");
+                        question = question + System.lineSeparator() + "Следующий тип кода: " + codeInfo.getNextType().getClass().getSimpleName().replace("AuthenticationCodeType", "");
                     }
                     trim = true;
                     break;
                 case ASK_PASSWORD:
-                    question = "Enter your password";
+                    question = "Введите пароль";
                     break;
                 default:
                     question = parameter.toString();

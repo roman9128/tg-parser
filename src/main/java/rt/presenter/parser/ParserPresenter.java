@@ -7,11 +7,9 @@ import it.tdlight.client.APIToken;
 import it.tdlight.client.SimpleTelegramClientBuilder;
 import it.tdlight.client.SimpleTelegramClientFactory;
 import it.tdlight.client.TDLibSettings;
-import rt.infrastructure.notifier.Notifier;
 import rt.infrastructure.parser.PhoneAuthentication;
 import rt.infrastructure.parser.TgParser;
 import rt.infrastructure.config.PropertyHandler;
-import rt.model.notification.Notification;
 import rt.model.service.InteractionStarter;
 import rt.model.service.ParameterRequester;
 import rt.model.service.ParserService;
@@ -21,7 +19,6 @@ import rt.view.View;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -30,7 +27,7 @@ public class ParserPresenter implements Presenter, ParameterRequester, Interacti
     private ParserService service;
     private final View view;
     private final NoteStorageService storage;
-    private final ExecutorService executor = Executors.newSingleThreadExecutor();
+    private final ExecutorService executor = Executors.newFixedThreadPool(3);
 
     public ParserPresenter(View view, NoteStorageService storage) {
         this.view = view;
@@ -71,10 +68,7 @@ public class ParserPresenter implements Presenter, ParameterRequester, Interacti
 
     @Override
     public void startInteractions() {
-        CompletableFuture.runAsync(view::startInteractions).exceptionally(e -> {
-            Notifier.getInstance().addNotification(new Notification("Ошибка в консольном потоке: " + e.getMessage(), true));
-            return null;
-        });
+        executor.execute(view::startInteractions);
     }
 
     public void show() {
@@ -82,9 +76,7 @@ public class ParserPresenter implements Presenter, ParameterRequester, Interacti
     }
 
     public void load(String folderIDString, String dateFromString, String dateToString) {
-        ExecutorService loader = Executors.newSingleThreadExecutor();
-        loader.execute(() -> service.loadChannelsHistory(folderIDString, dateFromString, dateToString));
-        loader.shutdown();
+        executor.execute(() -> service.loadChannelsHistory(folderIDString, dateFromString, dateToString));
     }
 
     public void close() {

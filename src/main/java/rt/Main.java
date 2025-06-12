@@ -11,13 +11,14 @@ import rt.presenter.recorder.RecorderPresenter;
 import rt.presenter.storage.StoragePresenter;
 import rt.view.View;
 import rt.view.console.ConsoleUI;
+import rt.view.gui.SwingUI;
 
 import java.util.Map;
 
-public class ConsoleMain {
+public class Main {
 
     public static void main(String[] args) {
-        View view = new ConsoleUI();
+        View view = new SwingUI();
         NoteStorageService storage = new NoteStorage();
 
         AnalyzerPresenter analyzerPresenter;
