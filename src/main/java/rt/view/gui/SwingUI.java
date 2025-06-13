@@ -1,10 +1,5 @@
 package rt.view.gui;
 
-import rt.infrastructure.analyzer.AnalyzerImpl;
-import rt.infrastructure.storage.NoteStorage;
-import rt.model.service.AnalyzerService;
-import rt.model.service.NoteStorageService;
-import rt.nlp.NLPService;
 import rt.presenter.Presenter;
 import rt.presenter.analyzer.AnalyzerPresenter;
 import rt.presenter.parser.ParserPresenter;
@@ -14,6 +9,8 @@ import rt.view.View;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.util.Objects;
@@ -25,8 +22,7 @@ public class SwingUI extends JFrame implements View {
     private RecorderPresenter recorderPresenter;
     private AnalyzerPresenter analyzerPresenter;
 
-    private JPanel buttonPanel;
-    private JTextArea outputArea;
+    private JTextArea textArea;
 
     public SwingUI() {
         SwingUtilities.invokeLater(() -> {
@@ -36,7 +32,7 @@ public class SwingUI extends JFrame implements View {
 
             setVisible(false);
             setTitle("Tg-Parser 2.0");
-            setSize(600, 600);
+            setSize(500, 350);
             setResizable(false);
             setLocationRelativeTo(null);
 
@@ -69,21 +65,121 @@ public class SwingUI extends JFrame implements View {
     }
 
     private void initComponents() {
+        JButton loadButton = new JButton("Загрузить");
+        JButton analyzeButton = new JButton("Анализировать");
+        JButton findButton = new JButton("Найти");
+        JButton writeButton = new JButton("Записать");
+        JButton clearButton = new JButton("Очистить");
+        JButton closeButton = new JButton("Закрыть программу");
+        JButton logoutButton = new JButton("Выйти из аккаунта");
+
+        Dimension buttonSize = new Dimension(150, 30);
+        loadButton.setPreferredSize(buttonSize);
+        analyzeButton.setPreferredSize(buttonSize);
+        findButton.setPreferredSize(buttonSize);
+        writeButton.setPreferredSize(buttonSize);
+        clearButton.setPreferredSize(buttonSize);
+        closeButton.setPreferredSize(buttonSize);
+        logoutButton.setPreferredSize(buttonSize);
+        loadButton.setMaximumSize(buttonSize);
+        analyzeButton.setMaximumSize(buttonSize);
+        findButton.setMaximumSize(buttonSize);
+        writeButton.setMaximumSize(buttonSize);
+        clearButton.setMaximumSize(buttonSize);
+        closeButton.setMaximumSize(buttonSize);
+        logoutButton.setMaximumSize(buttonSize);
+
         JPanel mainPanel = new JPanel(new BorderLayout());
 
-        outputArea = new JTextArea();
-        outputArea.setEditable(false);
-        JScrollPane scrollPane = new JScrollPane(outputArea);
+        JPanel leftPanel = new JPanel(new BorderLayout());
+        leftPanel.setPreferredSize(new Dimension(150, 350));
 
-        JToolBar toolBar = new JToolBar();
-        toolBar.add(new JButton("Парсер"));
-        toolBar.add(new JButton("Анализатор"));
-        toolBar.add(new JButton("Хранилище"));
-        toolBar.add(new JButton("Запись"));
+        JPanel mainButtonsPanel = new JPanel();
+        mainButtonsPanel.setLayout(new BoxLayout(mainButtonsPanel, BoxLayout.Y_AXIS));
+        mainButtonsPanel.add(Box.createVerticalStrut(10));
+        mainButtonsPanel.add(loadButton);
+        mainButtonsPanel.add(Box.createVerticalStrut(10));
+        mainButtonsPanel.add(analyzeButton);
+        mainButtonsPanel.add(Box.createVerticalStrut(10));
+        mainButtonsPanel.add(findButton);
+        mainButtonsPanel.add(Box.createVerticalStrut(10));
+        mainButtonsPanel.add(writeButton);
+        mainButtonsPanel.add(Box.createVerticalStrut(10));
+        mainButtonsPanel.add(clearButton);
+        mainButtonsPanel.add(Box.createVerticalGlue());
 
-        mainPanel.add(toolBar, BorderLayout.NORTH);
-        mainPanel.add(scrollPane, BorderLayout.CENTER);
+        JPanel bottomButtonsPanel = new JPanel();
+        bottomButtonsPanel.setLayout(new BoxLayout(bottomButtonsPanel, BoxLayout.Y_AXIS));
+        bottomButtonsPanel.add(logoutButton);
+        bottomButtonsPanel.add(Box.createVerticalStrut(10));
+        bottomButtonsPanel.add(closeButton);
+        bottomButtonsPanel.add(Box.createVerticalStrut(10));
 
+        leftPanel.add(mainButtonsPanel, BorderLayout.CENTER);
+        leftPanel.add(bottomButtonsPanel, BorderLayout.SOUTH);
+        
+        JPanel rightPanel = new JPanel(new BorderLayout());
+        rightPanel.setPreferredSize(new Dimension(350, 350));
+
+        textArea = new JTextArea();
+        textArea.setEditable(false);
+        textArea.setLineWrap(true);
+        textArea.setWrapStyleWord(true);
+
+        JScrollPane scrollPane = new JScrollPane(textArea);
+        rightPanel.add(scrollPane, BorderLayout.CENTER);
+
+        mainPanel.add(leftPanel, BorderLayout.WEST);
+        mainPanel.add(rightPanel, BorderLayout.CENTER);
+
+        loadButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                textArea.append("Нажата кнопка: Загрузить\n");
+            }
+        });
+
+        analyzeButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                textArea.append("Нажата кнопка: Анализировать\n");
+            }
+        });
+
+        findButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                textArea.append("Нажата кнопка: Найти\n");
+            }
+        });
+
+        writeButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                textArea.append("Нажата кнопка: Записать\n");
+            }
+        });
+
+        clearButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                textArea.append("Нажата кнопка: Очистить\n");
+            }
+        });
+
+        closeButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                System.exit(0);
+            }
+        });
+
+        logoutButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                textArea.append("Нажата кнопка: Выйти из аккаунта\n");
+            }
+        });
         add(mainPanel);
     }
 
@@ -131,12 +227,16 @@ public class SwingUI extends JFrame implements View {
 
     @Override
     public void classify() {
-
+        if (analyzerPresenter != null) {
+            analyzerPresenter.classify();
+        } else {
+            print("Анализатор выключен", true);
+        }
     }
 
     @Override
     public void clear() {
-
+        storagePresenter.clear();
     }
 
     @Override
@@ -146,7 +246,7 @@ public class SwingUI extends JFrame implements View {
 
     @Override
     public void logout() {
-
+        parserPresenter.logout();
     }
 
     @Override
