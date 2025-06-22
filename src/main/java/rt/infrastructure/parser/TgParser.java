@@ -5,7 +5,6 @@ import it.tdlight.jni.TdApi;
 import rt.infrastructure.notifier.Notifier;
 import rt.model.note.*;
 import rt.infrastructure.config.PropertyHandler;
-import rt.model.notification.Notification;
 import rt.model.service.InteractionStarter;
 import rt.model.service.ParameterRequester;
 import rt.model.service.ParserService;
@@ -47,17 +46,16 @@ public class TgParser implements ParserService {
     private void onUpdateAuthorizationState(TdApi.UpdateAuthorizationState update) {
         TdApi.AuthorizationState authorizationState = update.authorizationState;
         if (authorizationState instanceof TdApi.AuthorizationStateReady) {
-            Notifier.getInstance().addNotification(new Notification("Авторизован", true));
-            Notifier.getInstance().addNotification(new Notification("Начинаю загрузку чатов, каналов, папок", true));
+            Notifier.getInstance().addNotification("Авторизован");
             getChats();
             getChannels();
             getFoldersInfo();
             stopBlockingExecutor();
             starter.startInteractions();
         } else if (authorizationState instanceof TdApi.AuthorizationStateClosed) {
-            Notifier.getInstance().addNotification(new Notification("Соединение закрыто", true));
+            Notifier.getInstance().addNotification("Соединение закрыто");
         } else if (authorizationState instanceof TdApi.AuthorizationStateLoggingOut) {
-            Notifier.getInstance().addNotification(new Notification("Не авторизован", true));
+            Notifier.getInstance().addNotification("Не авторизован");
         }
     }
 
@@ -94,7 +92,7 @@ public class TgParser implements ParserService {
             try {
                 Thread.sleep(2000);
             } catch (InterruptedException e) {
-                Notifier.getInstance().addNotification(new Notification(e.getMessage(), true));
+                Notifier.getInstance().addNotification(e.getMessage());
             }
             getChatsFromFolders();
         });
@@ -105,7 +103,7 @@ public class TgParser implements ParserService {
         for (int folderID : foldersInfo.keySet()) {
             client.send(new TdApi.GetChatFolder(folderID)).whenCompleteAsync((folder, error) -> {
                 if (error != null) {
-                    Notifier.getInstance().addNotification(new Notification("Ошибка при получении содержимого папок: " + error.getMessage(), true));
+                    Notifier.getInstance().addNotification("Ошибка при получении содержимого папок: " + error.getMessage());
                 } else {
                     chatsInFolders.put(folderID, folder.includedChatIds);
                 }
@@ -114,7 +112,7 @@ public class TgParser implements ParserService {
     }
 
     @Override
-    public void show() {
+    public String show() {
         stopLoadingNewChannels();
         StringBuilder builder = new StringBuilder();
         for (int folderID : foldersInfo.keySet()) {
@@ -131,7 +129,7 @@ public class TgParser implements ParserService {
 //                        .append(System.lineSeparator());
 //            }
         }
-        Notifier.getInstance().addNotification(new Notification(builder.toString(), true));
+        return builder.toString();
     }
 
     @Override
@@ -143,11 +141,11 @@ public class TgParser implements ParserService {
         Long dateNowUnix = LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toEpochSecond();
 
         if (dateFromUnix >= dateToUnix) {
-            Notifier.getInstance().addNotification(new Notification("Вторая дата не может быть больше первой", true));
+            Notifier.getInstance().addNotification("Вторая дата не может быть больше первой");
             return;
         }
         if (dateFromUnix > dateNowUnix) {
-            Notifier.getInstance().addNotification(new Notification("Этот день ещё не наступил", true));
+            Notifier.getInstance().addNotification("Этот день ещё не наступил");
             return;
         }
 
@@ -155,29 +153,30 @@ public class TgParser implements ParserService {
         chatHistoryLoader.setDateToUnix(dateToUnix);
 
         if (folderID == null) {
-            Notifier.getInstance().addNotification(new Notification("Начинаю загрузку со всех каналов", true));
+            Notifier.getInstance().addNotification("Начинаю загрузку со всех каналов");
             for (Long channelID : supergroups.keySet()) {
                 loadChatHistory(channelID, dateFromUnix);
             }
         } else {
             if (chatsInFolders.containsKey(folderID)) {
-                Notifier.getInstance().addNotification(new Notification("Начинаю загрузку сообщений из папки " + foldersInfo.get(folderID), true));
+                Notifier.getInstance().addNotification("Начинаю загрузку сообщений из папки " + foldersInfo.get(folderID));
                 for (Long chatID : chatsInFolders.get(folderID)) {
                     if (supergroups.containsKey(chatID)) {
                         loadChatHistory(chatID, dateFromUnix);
                     }
                 }
             } else {
-                Notifier.getInstance().addNotification(new Notification("Нет такой папки", true));
+                Notifier.getInstance().addNotification("Нет такой папки");
                 return;
             }
         }
         chatHistoryLoader.removeSurplus();
         prepareNotes();
-        Notifier.getInstance().addNotification(new Notification("Всего загружено " + storage.getAllNotesQuantity() + " сообщ., соотв. заданным параметрам", true));
+        Notifier.getInstance().addNotification("Всего загружено " + storage.getAllNotesQuantity() + " сообщ., соотв. заданным параметрам");
     }
 
     private void loadChatHistory(Long channelID, Long dateFromUnix) {
+        Notifier.getInstance().addNotification("Загружаю сообщения из " + chats.get(channelID).title);
         int messagesLeft = PropertyHandler.getMessagesToDownload();
         int messagesToStop = PropertyHandler.getMessagesToStop();
         long fromMessageID = 0;
@@ -188,14 +187,13 @@ public class TgParser implements ParserService {
             try {
                 Thread.sleep(Randomizer.giveNumber());
             } catch (InterruptedException e) {
-                Notifier.getInstance().addNotification(new Notification(e.getMessage(), true));
+                Notifier.getInstance().addNotification(e.getMessage());
             }
             if (!chatHistoryLoader.isEmpty()) {
                 fromMessageID = chatHistoryLoader.getLastMessageID();
                 messagesLeft -= chatHistoryLoader.getCountArrived();
                 messagesToStop -= chatHistoryLoader.getCountArrived();
             }
-            Notifier.getInstance().addNotification(new Notification(chatHistoryLoader.getAmountOfReceivedMsg() + " сообщ. предварительно загружено", false));
             if (chatHistoryLoader.getCountArrived() == 0) {
                 break;
             }
@@ -213,7 +211,7 @@ public class TgParser implements ParserService {
                 }
             }
         }
-        Notifier.getInstance().addNotification(new Notification("Загрузка сообщений из " + chats.get(channelID).title + " закончена", true));
+        Notifier.getInstance().addNotification("Загрузка сообщений из " + chats.get(channelID).title + " закончена");
         chatHistoryLoader.zeroCounter();
     }
 
@@ -224,7 +222,7 @@ public class TgParser implements ParserService {
     @Override
     public void logout() {
         client.send(new TdApi.LogOut()).thenAccept(ok -> {
-            Notifier.getInstance().addNotification(new Notification("Вышел из аккаунта", true));
+            Notifier.getInstance().addNotification("Вышел из аккаунта");
         });
     }
 
@@ -264,7 +262,6 @@ public class TgParser implements ParserService {
                 .whenCompleteAsync((link, error) -> {
                     if (error != null) {
                         note.setMsgLink("Не удалось получить ссылку");
-                        Notifier.getInstance().addNotification(new Notification("Ошибка при запросе ссылки: " + error.getMessage(), true));
                     } else {
                         note.setMsgLink(link.link);
                     }

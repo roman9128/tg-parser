@@ -1,7 +1,6 @@
 package rt.infrastructure.analyzer;
 
 import rt.infrastructure.notifier.Notifier;
-import rt.model.notification.Notification;
 import rt.model.service.AnalyzerService;
 import rt.model.service.NoteStorageService;
 
@@ -22,10 +21,10 @@ public class AnalyzerImpl implements AnalyzerService {
     @Override
     public void classify() {
         if (storage.noAnyNotes()) {
-            Notifier.getInstance().addNotification(new Notification("Нечего анализировать", true));
+            Notifier.getInstance().addNotification("Нечего анализировать");
             return;
         }
-        Notifier.getInstance().addNotification(new Notification("Начинаю анализировать", true));
+        Notifier.getInstance().addNotification("Начинаю анализировать");
         storage.getNotesCommonPool().forEach(note -> {
             String noteText = note.getText();
             Map<String, Double> topics = service.classify(noteText);
@@ -38,6 +37,6 @@ public class AnalyzerImpl implements AnalyzerService {
                 note.setKeyWords(topics);
             });
         }
-        Notifier.getInstance().addNotification(new Notification("Анализ закончен", true));
+        Notifier.getInstance().addNotification("Анализ закончен");
     }
 }

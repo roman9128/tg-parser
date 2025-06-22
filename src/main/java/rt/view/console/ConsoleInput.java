@@ -17,13 +17,13 @@ final class ConsoleInput {
     static String askParameter(String displayName, String question) {
         synchronized (LOCK) {
             Console console = System.console();
+            System.out.printf("%s: %s: ", displayName, question);
             if (console != null) {
-                return console.readLine("%s: %s: ", displayName, question);
+                return console.readLine();
             } else {
                 if (scanner == null) {
                     scanner = new InputStreamReader(System.in);
                 }
-                System.out.printf("%s: %s: ", displayName, question);
                 try {
                     return interruptibleReadLine(scanner);
                 } catch (InterruptedException | IOException e) {

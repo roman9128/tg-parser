@@ -1,12 +1,10 @@
 package rt.infrastructure.notifier;
 
-import rt.model.notification.Notification;
-
 import java.util.concurrent.LinkedBlockingQueue;
 
 public class Notifier {
     private static volatile Notifier instance;
-    private final LinkedBlockingQueue<Notification> queue = new LinkedBlockingQueue<>();
+    private final LinkedBlockingQueue<String> queue = new LinkedBlockingQueue<>();
 
     private Notifier() {
     }
@@ -18,15 +16,11 @@ public class Notifier {
         return instance;
     }
 
-    public void addNotification(Notification notification) {
+    public void addNotification(String notification) {
         queue.offer(notification);
     }
 
-    public Notification getNotification() throws InterruptedException {
+    public String getNotification() throws InterruptedException {
         return queue.take();
-    }
-
-    public boolean hasNotifications() {
-        return !queue.isEmpty();
     }
 }

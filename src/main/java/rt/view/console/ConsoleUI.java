@@ -2,7 +2,6 @@ package rt.view.console;
 
 import rt.infrastructure.config.PropertyHandler;
 import rt.infrastructure.notifier.Notifier;
-import rt.model.notification.Notification;
 import rt.presenter.Presenter;
 import rt.presenter.analyzer.AnalyzerPresenter;
 import rt.presenter.parser.ParserPresenter;
@@ -42,7 +41,7 @@ public class ConsoleUI implements View {
                 System.arraycopy(userCommand, 0, args, 0, userCommand.length);
                 switch (args[0]) {
                     case "show" -> {
-                        show();
+                        showFolders();
                     }
                     case "load" -> {
                         load(args[1], args[2], args[3]);
@@ -85,8 +84,8 @@ public class ConsoleUI implements View {
         executor.execute(() -> {
             while (!Thread.currentThread().isInterrupted()) {
                 try {
-                    Notification notification = Notifier.getInstance().getNotification();
-                    print(notification.getMessage(), notification.needNextLine());
+                    String notification = Notifier.getInstance().getNotification();
+                    print(notification);
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
                     break;
@@ -101,8 +100,8 @@ public class ConsoleUI implements View {
     }
 
     @Override
-    public void show() {
-        parserPresenter.show();
+    public void showFolders() {
+        print(parserPresenter.show());
     }
 
     @Override
@@ -120,7 +119,7 @@ public class ConsoleUI implements View {
         if (analyzerPresenter != null) {
             analyzerPresenter.classify();
         } else {
-            print("Анализатор выключен", true);
+            print("Анализатор выключен");
         }
     }
 
@@ -191,12 +190,8 @@ public class ConsoleUI implements View {
     }
 
     @Override
-    public void print(String text, boolean needNextLine) {
-        if (needNextLine) {
-            System.out.println(text);
-        } else {
-            System.out.print(text + "\r");
-        }
+    public void print(String text) {
+        System.out.println(text);
     }
 
     @Override

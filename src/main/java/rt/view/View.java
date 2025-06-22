@@ -11,7 +11,7 @@ public interface View {
 
     void stopNotificationListener();
 
-    void show();
+    void showFolders();
 
     void load(String folderIDString, String dateFromString, String dateToString);
 
@@ -27,7 +27,7 @@ public interface View {
 
     void logout();
 
-    void print(String text, boolean needNextLine);
+    void print(String text);
 
     String askParameter(String who, String question);
 }

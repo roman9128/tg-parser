@@ -3,7 +3,6 @@ package rt.infrastructure.recorder;
 import rt.infrastructure.config.PropertyHandler;
 import rt.infrastructure.notifier.Notifier;
 import rt.model.note.Note;
-import rt.model.notification.Notification;
 import rt.model.service.FileRecorderService;
 import rt.model.service.NoteStorageService;
 
@@ -27,19 +26,18 @@ public class FileRecorder implements FileRecorderService {
     @Override
     public void write(boolean writeAllNotes) {
         if (storage.noAnyNotes() && writeAllNotes) {
-            Notifier.getInstance().addNotification(new Notification("Нечего записывать. Сначала нужно загрузить сообщения", true));
+            Notifier.getInstance().addNotification("Нечего записывать. Сначала нужно загрузить сообщения");
             return;
         }
         if (storage.noSuitableNotes() && !writeAllNotes) {
-            Notifier.getInstance().addNotification(new Notification("Нет отобранных сообщений", true));
+            Notifier.getInstance().addNotification("Нет отобранных сообщений");
             return;
         }
         if (writeAllNotes) {
-            Notifier.getInstance().addNotification(new Notification("Начинаю запись в файл (" + storage.getAllNotesQuantity() + " сообщ. всего)", true));
+            Notifier.getInstance().addNotification("Начинаю запись в файл (" + storage.getAllNotesQuantity() + " сообщ. всего)");
         } else {
-            Notifier.getInstance().addNotification(new Notification("Начинаю запись в файл (" + storage.getSuitableNotesQuantity() + " сообщ. всего)", true));
+            Notifier.getInstance().addNotification("Начинаю запись в файл (" + storage.getSuitableNotesQuantity() + " сообщ. всего)");
         }
-        Notifier.getInstance().addNotification(new Notification("Записываю. Подожди немного", false));
         String channelName = "";
         while (writeAllNotes ? !storage.noAnyNotes() : !storage.noSuitableNotes()) {
             Note note;
@@ -54,16 +52,16 @@ public class FileRecorder implements FileRecorderService {
                 try {
                     FileRecorder.writeToFile(PropertyHandler.getFilePath(), ">>>>>>> Далее сообщения из канала " + channelName + System.lineSeparator());
                 } catch (IOException e) {
-                    Notifier.getInstance().addNotification(new Notification("Ошибка при записи: " + e.getMessage(), true));
+                    Notifier.getInstance().addNotification("Ошибка при записи: " + e.getMessage());
                 }
             }
             try {
                 FileRecorder.writeToFile(PropertyHandler.getFilePath(), note.toString());
             } catch (IOException e) {
-                Notifier.getInstance().addNotification(new Notification("Ошибка при записи в файл: " + e.getMessage(), true));
+                Notifier.getInstance().addNotification("Ошибка при записи в файл: " + e.getMessage());
             }
         }
-        Notifier.getInstance().addNotification(new Notification("Запись сообщений в файл закончена", true));
+        Notifier.getInstance().addNotification("Запись сообщений в файл закончена");
         if (writeAllNotes) {
             storage.clearAll();
         } else {

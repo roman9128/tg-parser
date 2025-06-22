@@ -48,19 +48,20 @@ public class ParserPresenter implements Presenter, ParameterRequester, Interacti
                             PhoneAuthentication authData = new PhoneAuthentication(this);
                             try (TgParser tgParser = new TgParser(clientBuilder, authData, storage, this, this)) {
                                 service = tgParser;
-                                view.print("Готов к работе", true);
+                                view.startNotificationListener();
+                                view.print("Готов к работе");
                                 service.waitForExit();
                                 Thread.sleep(100); // ожидание завершения соединения с TDLib
                             } catch (Exception e) {
-                                view.print("Исключение в главном потоке: " + e.getMessage(), true);
+                                view.print("Исключение в главном потоке: " + e.getMessage());
                             } finally {
-                                view.print("Завершаю работу...", true);
+                                view.print("Завершаю работу...");
                                 view.stopNotificationListener();
                                 executor.shutdown();
                             }
                         }
                     } catch (Exception e) {
-                        view.print(e.getMessage(), true);
+                        view.print(e.getMessage());
                     }
                 }
         );
@@ -71,8 +72,8 @@ public class ParserPresenter implements Presenter, ParameterRequester, Interacti
         executor.execute(view::startInteractions);
     }
 
-    public void show() {
-        service.show();
+    public String show() {
+        return service.show();
     }
 
     public void load(String folderIDString, String dateFromString, String dateToString) {

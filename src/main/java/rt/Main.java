@@ -18,7 +18,7 @@ import java.util.Map;
 public class Main {
 
     public static void main(String[] args) {
-        View view = new SwingUI();
+        View view = new ConsoleUI();
         NoteStorageService storage = new NoteStorage();
 
         AnalyzerPresenter analyzerPresenter;
@@ -26,7 +26,7 @@ public class Main {
             AnalyzerService analyzerService = new AnalyzerImpl(storage, new NLPService());
             analyzerPresenter = new AnalyzerPresenter(view, analyzerService);
         } catch (Exception e) {
-            view.print("Ошибка в анализаторе: " + e.getMessage(), true);
+            view.print("Ошибка в анализаторе: " + e.getMessage());
             analyzerPresenter = null;
         }
 
@@ -35,7 +35,6 @@ public class Main {
         RecorderPresenter recorderPresenter = new RecorderPresenter(view, storage);
         view.setPresenters(parserPresenter, storagePresenter, recorderPresenter, analyzerPresenter);
 
-        view.startNotificationListener();
         parserPresenter.initService();
     }
 

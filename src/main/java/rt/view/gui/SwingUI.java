@@ -1,5 +1,6 @@
 package rt.view.gui;
 
+import rt.infrastructure.notifier.Notifier;
 import rt.presenter.Presenter;
 import rt.presenter.analyzer.AnalyzerPresenter;
 import rt.presenter.parser.ParserPresenter;
@@ -8,180 +9,139 @@ import rt.presenter.storage.StoragePresenter;
 import rt.view.View;
 
 import javax.swing.*;
+import javax.swing.border.EmptyBorder;
+import javax.swing.text.MaskFormatter;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
-import java.util.Objects;
+import java.awt.event.*;
+import java.text.ParseException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
-public class SwingUI extends JFrame implements View {
+public class SwingUI implements View {
 
     private ParserPresenter parserPresenter;
     private StoragePresenter storagePresenter;
     private RecorderPresenter recorderPresenter;
     private AnalyzerPresenter analyzerPresenter;
 
-    private JTextArea textArea;
+    private final ExecutorService executor = Executors.newSingleThreadExecutor();
+
+    private AuthWindow authWindow;
+    private MainWindow mainWindow;
+    private LoadingWindow loadingWindow;
+    private SearchWindow searchWindow;
+
+//    private void initLoadingParamsWindow() {
+//        JDialog loadingParamsWindow = new JDialog(this, "Параметры загрузки", true);
+//        loadingParamsWindow.setSize(400, 200);
+//        loadingParamsWindow.setResizable(false);
+//        loadingParamsWindow.setLayout(new BorderLayout(5, 5));
+//        loadingParamsWindow.getRootPane().setBorder(new EmptyBorder(5, 5, 5, 5));
+//
+//        JFormattedTextField startDateField = createDateField();
+//        JFormattedTextField endDateField = createDateField();
+//
+//        addDigitFilter(startDateField);
+//        addDigitFilter(endDateField);
+//
+//        String[] folders = parserPresenter.show().split(System.lineSeparator());
+//        DefaultListModel<String> listModel = new DefaultListModel<>();
+//        listModel.addElement("Все");
+//        for (String folder : folders) {
+//            folder = folder.split(": ")[1];
+//            listModel.addElement(folder);
+//        }
+//
+//        JList<String> itemList = new JList<>(listModel);
+//        itemList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+//        itemList.setFont(new Font("Arial", Font.PLAIN, 12));
+//
+//        JScrollPane scrollPane = new JScrollPane(itemList);
+//        scrollPane.setBorder(BorderFactory.createTitledBorder("Папки"));
+//        scrollPane.setPreferredSize(new Dimension(150, 0));
+//
+//        JPanel datePanel = new JPanel(new GridLayout(2, 2, 5, 5));
+//        datePanel.setBorder(BorderFactory.createTitledBorder("Период"));
+//
+//        datePanel.add(new JLabel("С "));
+//        datePanel.add(startDateField);
+//        datePanel.add(new JLabel("По "));
+//        datePanel.add(endDateField);
+//
+//        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 5, 0));
+//        JButton cancelButton = createButton("Отмена", Color.WHITE);
+//        JButton okButton = createButton("OK", Color.WHITE);
+//
+//        cancelButton.addActionListener(e -> loadingParamsWindow.dispose());
+//
+//        okButton.addActionListener(e -> {
+//            System.out.println("Выбрано: " + itemList.getSelectedValue());
+//            System.out.println("Период: " + startDateField.getText() + " - " + endDateField.getText());
+//            loadingParamsWindow.setVisible(false);
+//        });
+//
+//        buttonPanel.add(cancelButton);
+//        buttonPanel.add(okButton);
+//
+//        loadingParamsWindow.add(scrollPane, BorderLayout.WEST);
+//        loadingParamsWindow.add(datePanel, BorderLayout.CENTER);
+//        loadingParamsWindow.add(buttonPanel, BorderLayout.SOUTH);
+//
+//        loadingParamsWindow.setLocationRelativeTo(this);
+//        loadingParamsWindow.setVisible(true);
+//    }
 
     public SwingUI() {
-        SwingUtilities.invokeLater(() -> {
-            UIManager.put("OptionPane.yesButtonText", "Да");
-            UIManager.put("OptionPane.noButtonText", "Нет");
-            UIManager.put("OptionPane.cancelButtonText", "Отмена");
-
-            setVisible(false);
-            setTitle("Tg-Parser 2.0");
-            setSize(500, 350);
-            setResizable(false);
-            setLocationRelativeTo(null);
-
-            ImageIcon icon = new ImageIcon(Objects.requireNonNull(getClass().getResource("/images/logo.png")));
-            setIconImage(icon.getImage());
-
-            setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
-            addWindowListener(new WindowAdapter() {
-                @Override
-                public void windowClosing(WindowEvent e) {
-                    confirmClosure();
-                }
-            });
-        });
-
-        initComponents();
+        mainWindow = new MainWindow(this);
     }
 
-    private void confirmClosure() {
-        int option = JOptionPane.showConfirmDialog(
-                this,
-                "Вы уверены, что хотите выйти?",
-                "Выход",
-                JOptionPane.YES_NO_OPTION
-        );
-        if (option == JOptionPane.YES_OPTION) {
-            stopParser();
-            dispose();
+    private void addDigitFilter(JFormattedTextField field) {
+        field.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyTyped(KeyEvent e) {
+                char c = e.getKeyChar();
+                if (!(Character.isDigit(c) || c == '.' || c == KeyEvent.VK_BACK_SPACE || c == KeyEvent.VK_DELETE)) {
+                    e.consume();
+                }
+            }
+        });
+    }
+
+    private void setupDateField(JFormattedTextField field) {
+        field.setFont(new Font("Arial", Font.PLAIN, 12));
+        field.setColumns(10);
+        field.setHorizontalAlignment(JTextField.CENTER);
+        field.setToolTipText("Формат: ДД.ММ.ГГГГ (можно оставить пустым)");
+        field.setValue("");
+    }
+
+    private JFormattedTextField createDateField() {
+        try {
+            MaskFormatter dateFormatter = new MaskFormatter("##.##.####");
+            dateFormatter.setPlaceholderCharacter(' ');
+            dateFormatter.setAllowsInvalid(true);
+            dateFormatter.setOverwriteMode(false);
+
+            JFormattedTextField field = new JFormattedTextField(dateFormatter);
+            setupDateField(field);
+            return field;
+        } catch (ParseException e) {
+            JFormattedTextField field = new JFormattedTextField();
+            setupDateField(field);
+            return field;
         }
     }
 
-    private void initComponents() {
-        JButton loadButton = new JButton("Загрузить");
-        JButton analyzeButton = new JButton("Анализировать");
-        JButton findButton = new JButton("Найти");
-        JButton writeButton = new JButton("Записать");
-        JButton clearButton = new JButton("Очистить");
-        JButton closeButton = new JButton("Закрыть программу");
-        JButton logoutButton = new JButton("Выйти из аккаунта");
-
-        Dimension buttonSize = new Dimension(150, 30);
-        loadButton.setPreferredSize(buttonSize);
-        analyzeButton.setPreferredSize(buttonSize);
-        findButton.setPreferredSize(buttonSize);
-        writeButton.setPreferredSize(buttonSize);
-        clearButton.setPreferredSize(buttonSize);
-        closeButton.setPreferredSize(buttonSize);
-        logoutButton.setPreferredSize(buttonSize);
-        loadButton.setMaximumSize(buttonSize);
-        analyzeButton.setMaximumSize(buttonSize);
-        findButton.setMaximumSize(buttonSize);
-        writeButton.setMaximumSize(buttonSize);
-        clearButton.setMaximumSize(buttonSize);
-        closeButton.setMaximumSize(buttonSize);
-        logoutButton.setMaximumSize(buttonSize);
-
-        JPanel mainPanel = new JPanel(new BorderLayout());
-
-        JPanel leftPanel = new JPanel(new BorderLayout());
-        leftPanel.setPreferredSize(new Dimension(150, 350));
-
-        JPanel mainButtonsPanel = new JPanel();
-        mainButtonsPanel.setLayout(new BoxLayout(mainButtonsPanel, BoxLayout.Y_AXIS));
-        mainButtonsPanel.add(Box.createVerticalStrut(10));
-        mainButtonsPanel.add(loadButton);
-        mainButtonsPanel.add(Box.createVerticalStrut(10));
-        mainButtonsPanel.add(analyzeButton);
-        mainButtonsPanel.add(Box.createVerticalStrut(10));
-        mainButtonsPanel.add(findButton);
-        mainButtonsPanel.add(Box.createVerticalStrut(10));
-        mainButtonsPanel.add(writeButton);
-        mainButtonsPanel.add(Box.createVerticalStrut(10));
-        mainButtonsPanel.add(clearButton);
-        mainButtonsPanel.add(Box.createVerticalGlue());
-
-        JPanel bottomButtonsPanel = new JPanel();
-        bottomButtonsPanel.setLayout(new BoxLayout(bottomButtonsPanel, BoxLayout.Y_AXIS));
-        bottomButtonsPanel.add(logoutButton);
-        bottomButtonsPanel.add(Box.createVerticalStrut(10));
-        bottomButtonsPanel.add(closeButton);
-        bottomButtonsPanel.add(Box.createVerticalStrut(10));
-
-        leftPanel.add(mainButtonsPanel, BorderLayout.CENTER);
-        leftPanel.add(bottomButtonsPanel, BorderLayout.SOUTH);
-        
-        JPanel rightPanel = new JPanel(new BorderLayout());
-        rightPanel.setPreferredSize(new Dimension(350, 350));
-
-        textArea = new JTextArea();
-        textArea.setEditable(false);
-        textArea.setLineWrap(true);
-        textArea.setWrapStyleWord(true);
-
-        JScrollPane scrollPane = new JScrollPane(textArea);
-        rightPanel.add(scrollPane, BorderLayout.CENTER);
-
-        mainPanel.add(leftPanel, BorderLayout.WEST);
-        mainPanel.add(rightPanel, BorderLayout.CENTER);
-
-        loadButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                textArea.append("Нажата кнопка: Загрузить\n");
-            }
-        });
-
-        analyzeButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                textArea.append("Нажата кнопка: Анализировать\n");
-            }
-        });
-
-        findButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                textArea.append("Нажата кнопка: Найти\n");
-            }
-        });
-
-        writeButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                textArea.append("Нажата кнопка: Записать\n");
-            }
-        });
-
-        clearButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                textArea.append("Нажата кнопка: Очистить\n");
-            }
-        });
-
-        closeButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                System.exit(0);
-            }
-        });
-
-        logoutButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                textArea.append("Нажата кнопка: Выйти из аккаунта\n");
-            }
-        });
-        add(mainPanel);
+    private JButton createButton(String text, Color bgColor) {
+        JButton button = new JButton(text);
+        button.setFont(new Font("Arial", Font.BOLD, 12));
+        button.setBackground(bgColor);
+        button.setForeground(Color.BLACK);
+        button.setFocusPainted(false);
+        button.setPreferredSize(new Dimension(80, 25));
+        return button;
     }
+
 
     @Override
     public void setPresenters(Presenter presenter1, Presenter presenter2, Presenter presenter3, Presenter presenter4) {
@@ -197,22 +157,36 @@ public class SwingUI extends JFrame implements View {
 
     @Override
     public void startInteractions() {
-        setVisible(true);
+        mainWindow.setVisible(true);
     }
 
     @Override
     public void startNotificationListener() {
-
+        executor.execute(() -> {
+            while (!Thread.currentThread().isInterrupted()) {
+                try {
+                    print(Notifier.getInstance().getNotification());
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    break;
+                }
+            }
+        });
     }
 
     @Override
     public void stopNotificationListener() {
+        executor.shutdownNow();
+    }
+
+    @Override
+    public void showFolders() {
 
     }
 
     @Override
     public void load(String folderIDString, String dateFromString, String dateToString) {
-
+        parserPresenter.load(folderIDString, dateFromString, dateToString);
     }
 
     @Override
@@ -222,7 +196,7 @@ public class SwingUI extends JFrame implements View {
 
     @Override
     public void write(String value) {
-
+        recorderPresenter.write(value);
     }
 
     @Override
@@ -230,7 +204,7 @@ public class SwingUI extends JFrame implements View {
         if (analyzerPresenter != null) {
             analyzerPresenter.classify();
         } else {
-            print("Анализатор выключен", true);
+            print("Анализатор выключен");
         }
     }
 
@@ -249,9 +223,16 @@ public class SwingUI extends JFrame implements View {
         parserPresenter.logout();
     }
 
-    @Override
-    public void print(String text, boolean needNextLine) {
+    private void closeAllWindows() {
+        authWindow.dispose();
+        mainWindow.dispose();
+        loadingWindow.dispose();
+        searchWindow.dispose();
+    }
 
+    @Override
+    public void print(String text) {
+        mainWindow.getTextArea().append(text + System.lineSeparator());
     }
 
     @Override

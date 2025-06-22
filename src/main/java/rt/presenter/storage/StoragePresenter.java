@@ -18,19 +18,19 @@ public class StoragePresenter implements Presenter {
 
     public void find(String[] args) {
         if (storage.noAnyNotes()) {
-            view.print("Сначала нужно загрузить сообщения", true);
+            view.print("Сначала нужно загрузить сообщения");
             return;
         }
         String how = args[0].toLowerCase();
         String where = args[1].toLowerCase();
         String what = args[2].toLowerCase();
         if (how.isBlank() || where.isBlank() || what.isBlank()) {
-            view.print("Не заданы параметры поиска", true);
+            view.print("Не заданы параметры поиска");
             return;
         }
 
         if (!(how.equals("and") || how.equals("or") || how.equals("not"))) {
-            view.print("Не введено логическое условие and, or или not", true);
+            view.print("Не введено логическое условие and, or или not");
             return;
         }
 
@@ -39,20 +39,20 @@ public class StoragePresenter implements Presenter {
         } else if (where.equals("text")) {
             findNotesByText(how, what.split("\\s+"));
         } else {
-            view.print("Неверный параметр. Нужно topic или text", true);
+            view.print("Неверный параметр. Нужно topic или text");
             return;
         }
 
-        view.print("Поиск завершён", true);
+        view.print("Поиск завершён");
         if (storage.noSuitableNotes()) {
-            view.print("Нет отобранных сообщений", true);
+            view.print("Нет отобранных сообщений");
         } else {
-            view.print("Всего отобрано сообщений: " + storage.getSuitableNotesQuantity(), true);
+            view.print("Всего отобрано сообщений: " + storage.getSuitableNotesQuantity());
             if (where.equals("text")) {
-                view.print("Количество сообщений, содержащих слова для поиска", true);
-                view.print(storage.getWordsStat(), true);
+                view.print("Количество сообщений, содержащих слова для поиска");
+                view.print(storage.getWordsStat());
             }
-            view.print("Чтобы загрузить отобранные сообщения, введи команду write x", true);
+            view.print("Чтобы загрузить отобранные сообщения, введи команду write x");
         }
     }
 
@@ -81,6 +81,6 @@ public class StoragePresenter implements Presenter {
 
     public void clear() {
         storage.clearAll();
-        view.print("Все загруженные сообщения удалены", true);
+        view.print("Все загруженные сообщения удалены");
     }
 }

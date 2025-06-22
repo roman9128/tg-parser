@@ -6,9 +6,6 @@ import rt.model.service.NoteStorageService;
 import rt.presenter.Presenter;
 import rt.view.View;
 
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-
 public class RecorderPresenter implements Presenter {
 
     private final View view;
@@ -20,8 +17,6 @@ public class RecorderPresenter implements Presenter {
     }
 
     public void write(String value) {
-        ExecutorService writer = Executors.newSingleThreadExecutor();
-        writer.execute(() -> service.write(value.isEmpty() || value.isBlank()));
-        writer.shutdown();
+        service.write(value.isBlank());
     }
 }
