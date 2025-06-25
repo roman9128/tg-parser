@@ -41,7 +41,7 @@ public class ConsoleUI implements View {
                 System.arraycopy(userCommand, 0, args, 0, userCommand.length);
                 switch (args[0]) {
                     case "show" -> {
-                        showFolders();
+                        print(showFolders());
                     }
                     case "load" -> {
                         load(args[1], args[2], args[3]);
@@ -100,8 +100,8 @@ public class ConsoleUI implements View {
     }
 
     @Override
-    public void showFolders() {
-        print(parserPresenter.show());
+    public String showFolders() {
+        return parserPresenter.show();
     }
 
     @Override

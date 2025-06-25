@@ -16,7 +16,7 @@ class MainWindow extends JFrame {
     private JTextArea textArea;
     private final SwingUI swingUI;
 
-    public MainWindow(SwingUI swingUI) {
+    MainWindow(SwingUI swingUI) {
         this.swingUI = swingUI;
 
         SwingUtilities.invokeLater(() -> {
@@ -47,17 +47,17 @@ class MainWindow extends JFrame {
                     confirmClosure();
                 }
             });
+            initComponents();
         });
-        initComponents();
     }
 
     private void initComponents() {
-        JButton loadButton = createMainMenuButton("Загрузить", "Начать загрузку сообщений из телеграм-каналов");
-        JButton analyzeButton = createMainMenuButton("Анализировать", "Запустить анализатор текста для определения тематик сообщений");
-        JButton findButton = createMainMenuButton("Найти", "Запустить поиск сообщений по задаваемым параметрам");
-        JButton writeButton = createMainMenuButton("Записать", "Записать все загруженные сообщения в текстовый файл");
-        JButton clearButton = createMainMenuButton("Очистить", "Удалить все загруженные сообщения");
-        JButton logoutButton = createMainMenuButton("Разлогиниться", "Выйти из программы и выйти из учётной записи (потребуется повторная авторизация при новом входе)");
+        JButton loadButton = ElementsBuilder.createMainMenuButton("Загрузить", "Начать загрузку сообщений из телеграм-каналов", darkGray, white, gray);
+        JButton analyzeButton = ElementsBuilder.createMainMenuButton("Анализировать", "Запустить анализатор текста для определения тематик сообщений", darkGray, white, gray);
+        JButton findButton = ElementsBuilder.createMainMenuButton("Найти", "Запустить поиск сообщений по задаваемым параметрам", darkGray, white, gray);
+        JButton writeButton = ElementsBuilder.createMainMenuButton("Записать", "Записать все загруженные сообщения в текстовый файл", darkGray, white, gray);
+        JButton clearButton = ElementsBuilder.createMainMenuButton("Очистить", "Удалить все загруженные сообщения", darkGray, white, gray);
+        JButton logoutButton = ElementsBuilder.createMainMenuButton("Разлогиниться", "Выйти из программы и выйти из учётной записи (потребуется повторная авторизация при новом входе)", darkGray, white, gray);
 
         JPanel mainPanel = new JPanel(new BorderLayout());
         mainPanel.setBackground(darkGray);
@@ -162,8 +162,7 @@ class MainWindow extends JFrame {
         mainPanel.add(leftPanel, BorderLayout.WEST);
         mainPanel.add(rightPanel, BorderLayout.CENTER);
 
-        loadButton.addActionListener(e -> swingUI.print("ok"));
-
+        loadButton.addActionListener(e -> loadButtonPressed());
         analyzeButton.addActionListener(e -> swingUI.classify());
 
         findButton.addActionListener(new ActionListener() {
@@ -179,35 +178,14 @@ class MainWindow extends JFrame {
         add(mainPanel);
     }
 
-    private JButton createMainMenuButton(String text, String tooltip) {
-        Dimension buttonSize = new Dimension(140, 30);
-        JButton button = new JButton(text);
-        button.setToolTipText(tooltip);
-        button.setPreferredSize(buttonSize);
-        button.setMaximumSize(buttonSize);
-        button.setFocusPainted(false);
-        button.setBorderPainted(false);
-        button.setContentAreaFilled(false);
-        button.setOpaque(true);
-        button.setBackground(darkGray);
-        button.setForeground(white);
-        button.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseEntered(MouseEvent e) {
-                button.setBackground(gray);
-            }
-
-            @Override
-            public void mouseExited(MouseEvent e) {
-                button.setBackground(darkGray);
-            }
-        });
-        return button;
+    private void loadButtonPressed() {
+        swingUI.createLoadingWindow();
     }
 
     JTextArea getTextArea() {
         return textArea;
     }
+
     private void confirmClosure() {
         int option = JOptionPane.showConfirmDialog(
                 this,

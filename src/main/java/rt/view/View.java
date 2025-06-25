@@ -11,7 +11,7 @@ public interface View {
 
     void stopNotificationListener();
 
-    void showFolders();
+    String showFolders();
 
     void load(String folderIDString, String dateFromString, String dateToString);
 
