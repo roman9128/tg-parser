@@ -8,7 +8,7 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.Date;
 
-public class ElementsBuilder {
+class ElementsBuilder {
 
     static JButton createMainMenuButton(String text, String tooltip, Color back, Color fore, Color point) {
         Dimension buttonSize = new Dimension(140, 30);

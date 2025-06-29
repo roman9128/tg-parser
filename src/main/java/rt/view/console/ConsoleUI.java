@@ -41,7 +41,7 @@ public class ConsoleUI implements View {
                 System.arraycopy(userCommand, 0, args, 0, userCommand.length);
                 switch (args[0]) {
                     case "show" -> {
-                        print(showFolders());
+                        showFoldersAndChannels();
                     }
                     case "load" -> {
                         load(args[1], args[2], args[3]);
@@ -99,14 +99,34 @@ public class ConsoleUI implements View {
         executor.shutdownNow();
     }
 
-    @Override
-    public String showFolders() {
-        return parserPresenter.show();
+    public void showFoldersAndChannels() {
+        getFoldersIDsAndNames();
+        getChannelsIDsAndNames();
     }
 
     @Override
-    public void load(String folderIDString, String dateFromString, String dateToString) {
-        parserPresenter.load(folderIDString, dateFromString, dateToString);
+    public void getFoldersIDsAndNames() {
+        StringBuilder builder = new StringBuilder();
+        parserPresenter.getFoldersIDsAndNames()
+                .forEach((k, v) -> builder
+                        .append(k).append(": ").append(v)
+                        .append(System.lineSeparator()));
+        print(builder.toString());
+    }
+
+    @Override
+    public void getChannelsIDsAndNames() {
+        StringBuilder builder = new StringBuilder();
+        parserPresenter.getChannelsIDsAndNames()
+                .forEach((k, v) -> builder
+                        .append(k).append(": ").append(v)
+                        .append(System.lineSeparator()));
+        print(builder.toString());
+    }
+
+    @Override
+    public void load(String source, String dateFromString, String dateToString) {
+        parserPresenter.load(source, dateFromString, dateToString);
     }
 
     @Override
@@ -154,7 +174,7 @@ public class ConsoleUI implements View {
                 + "* команды для загрузки сообщений строятся по схеме:" + System.lineSeparator()
                 + "* load X DD.MM.YYYY DD.MM.YYYY" + System.lineSeparator()
                 + "* вместо Х может быть:" + System.lineSeparator()
-                + "* - число для обозначения номера папки для загрузки сообщений только из указанной папки" + System.lineSeparator()
+                + "* - номера папок или каналов через запятую без пробелов для загрузки сообщений только из указанных источников" + System.lineSeparator()
                 + "* - all для загрузки сообщений из всех пабликов" + System.lineSeparator()
                 + "* вместо DD.MM.YYYY может быть указана дата в данном формате" + System.lineSeparator()
                 + "* - если даты не указаны вообще, то будет загружено примерно " + PropertyHandler.getMessagesToDownload() + " сообщ. с канала" + System.lineSeparator()
@@ -179,7 +199,8 @@ public class ConsoleUI implements View {
                 + "* * * * * * * * * * * * * *" + System.lineSeparator()
                 + "* class - определить тематики сообщений (найдёт только те, на которые натренирован анализатор)" + System.lineSeparator()
                 + "* * * * * * * * * * * * * *" + System.lineSeparator()
-                + "* write - записать в файл" + System.lineSeparator()
+                + "* write - записать в файл все загруженные сообщения" + System.lineSeparator()
+                + "* write x - записать в файл только отобранные через поиск сообщения (при наличии)" + System.lineSeparator()
                 + "* * * * * * * * * * * * * *" + System.lineSeparator()
                 + "* clear - удалить загруженное" + System.lineSeparator()
                 + "* * * * * * * * * * * * * *" + System.lineSeparator()

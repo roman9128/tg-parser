@@ -1,15 +1,15 @@
-package rt.infrastructure.parser;
+package rt.presenter.parser;
 
 import java.time.*;
 import java.time.format.DateTimeFormatter;
 
 class NumbersParserUtil {
 
-    static Integer parseInteger(String numberString) {
+    static Long parseLongOrGetZero(String numberString) {
         try {
-            return Integer.parseInt(numberString);
+            return Long.parseLong(numberString);
         } catch (NumberFormatException e) {
-            return null;
+            return 0L;
         }
     }
 

@@ -163,23 +163,37 @@ class MainWindow extends JFrame {
         mainPanel.add(rightPanel, BorderLayout.CENTER);
 
         loadButton.addActionListener(e -> loadButtonPressed());
-        analyzeButton.addActionListener(e -> swingUI.classify());
-
-        findButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                textArea.append("Нажата кнопка: Найти\n");
-            }
-        });
-
-        writeButton.addActionListener(e -> swingUI.write(""));
-        clearButton.addActionListener(e -> swingUI.clear());
+        analyzeButton.addActionListener(e -> analyzeButtonPressed());
+        findButton.addActionListener(e -> findButtonPressed());
+        writeButton.addActionListener(e -> writeButtonPressed());
+        clearButton.addActionListener(e -> clearButtonPressed());
         logoutButton.addActionListener(e -> confirmLogout());
         add(mainPanel);
     }
 
     private void loadButtonPressed() {
+        textArea.setText("");
         swingUI.createLoadingWindow();
+    }
+
+    private void analyzeButtonPressed() {
+        textArea.setText("");
+        swingUI.classify();
+    }
+
+    private void findButtonPressed() {
+        textArea.setText("");
+        swingUI.createSearchWindow();
+    }
+
+    private void writeButtonPressed() {
+        textArea.setText("");
+        swingUI.write("");
+    }
+
+    private void clearButtonPressed() {
+        textArea.setText("");
+        swingUI.clear();
     }
 
     JTextArea getTextArea() {

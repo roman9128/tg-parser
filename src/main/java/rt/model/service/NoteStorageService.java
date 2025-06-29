@@ -33,4 +33,6 @@ public interface NoteStorageService {
     void clearAll();
 
     void clearChosen();
+
+    void removeCopies();
 }

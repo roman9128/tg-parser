@@ -8,11 +8,6 @@ import rt.presenter.recorder.RecorderPresenter;
 import rt.presenter.storage.StoragePresenter;
 import rt.view.View;
 
-import javax.swing.*;
-import javax.swing.text.MaskFormatter;
-import java.awt.*;
-import java.awt.event.*;
-import java.text.ParseException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.concurrent.ExecutorService;
@@ -27,8 +22,8 @@ public class SwingUI implements View {
 
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
 
-    private AuthWindow authWindow;
-    private MainWindow mainWindow;
+    private final AuthWindow authWindow;
+    private final MainWindow mainWindow;
 
     private final DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss - ");
 
@@ -75,11 +70,16 @@ public class SwingUI implements View {
     }
 
     @Override
-    public String showFolders() {
-        return parserPresenter.show();
+    public void getFoldersIDsAndNames() {
+
     }
 
-    public void createLoadingWindow() {
+    @Override
+    public void getChannelsIDsAndNames() {
+
+    }
+
+    void createLoadingWindow() {
         new LoadingWindow(this);
     }
 
@@ -88,9 +88,17 @@ public class SwingUI implements View {
         parserPresenter.load(folderIDString, dateFromString, dateToString);
     }
 
+    void createSearchWindow() {
+        if (storagePresenter.noAnyNotes()) {
+            find(new String[]{});
+        } else {
+            new SearchWindow(this);
+        }
+    }
+
     @Override
     public void find(String[] args) {
-
+        storagePresenter.find(args);
     }
 
     @Override

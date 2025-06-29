@@ -19,8 +19,12 @@ import rt.view.View;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.stream.Stream;
 
 public class ParserPresenter implements Presenter, ParameterRequester, InteractionStarter {
 
@@ -72,12 +76,33 @@ public class ParserPresenter implements Presenter, ParameterRequester, Interacti
         executor.execute(view::startInteractions);
     }
 
-    public String show() {
-        return service.show();
+    public Map<Integer, String> getFoldersIDsAndNames() {
+        return service.getFoldersIDsAndNames();
     }
 
-    public void load(String folderIDString, String dateFromString, String dateToString) {
-        executor.execute(() -> service.loadChannelsHistory(folderIDString, dateFromString, dateToString));
+    public Map<Long, String> getChannelsIDsAndNames() {
+        return service.getChannelsIDsAndNames();
+    }
+
+    public void load(String userChoiceInput, String dateFromString, String dateToString) {
+        Set<Long> channelsIDs = parseUserChoice(userChoiceInput);
+        Long dateFromUnix = NumbersParserUtil.parseUnixDateStartOfDay(dateFromString);
+        Long dateToUnix = NumbersParserUtil.parseUnixDateEndOfDay(dateToString);
+        executor.execute(() -> service.loadChannelsHistory(channelsIDs, dateFromUnix, dateToUnix));
+    }
+
+    private Set<Long> parseUserChoice(String input) {
+        Set<Long> result = new TreeSet<>();
+        Stream.of(input.split(","))
+                .map(NumbersParserUtil::parseLongOrGetZero)
+                .forEach(n -> {
+                    if (n < 0) {
+                        result.add(n);
+                    } else if (n > 0) {
+                        result.addAll(service.getChatsInFolder(n.intValue()));
+                    }
+                });
+        return result;
     }
 
     public void close() {

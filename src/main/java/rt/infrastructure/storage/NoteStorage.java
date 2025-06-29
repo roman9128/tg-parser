@@ -10,7 +10,7 @@ import java.util.stream.Collectors;
 
 public class NoteStorage implements NoteStorageService {
 
-    private final ConcurrentLinkedDeque<Note> notes = new ConcurrentLinkedDeque<>();
+    private ConcurrentLinkedDeque<Note> notes = new ConcurrentLinkedDeque<>();
     private Deque<Note> chosen_notes = new ArrayDeque<>();
     private final HashMap<String, Integer> argsMap = new HashMap<>();
     private final NoteFinder noteFinder = new NoteFinder();
@@ -125,8 +125,12 @@ public class NoteStorage implements NoteStorageService {
         return chosen_notes;
     }
 
-    private void removeCopies() {
-        chosen_notes = new ArrayDeque<>(new LinkedHashSet<>(chosen_notes));
+    @Override
+    public void removeCopies() {
+        notes = notes.stream().distinct().collect(Collectors.toCollection(ConcurrentLinkedDeque::new));
+        if (!noSuitableNotes()) {
+            chosen_notes = new ArrayDeque<>(new LinkedHashSet<>(chosen_notes));
+        }
     }
 
     private void countNotesWithArgs() {

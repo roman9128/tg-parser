@@ -5,6 +5,8 @@ import org.jdesktop.swingx.JXDatePicker;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.text.SimpleDateFormat;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -13,8 +15,11 @@ import java.util.stream.Stream;
 class LoadingWindow extends JFrame {
     private final SimpleDateFormat sdf = new SimpleDateFormat("dd.MM.yyyy");
 
-    public LoadingWindow(SwingUI swingUI) {
-        initComponents(swingUI);
+    LoadingWindow(SwingUI swingUI) {
+        SwingUtilities.invokeLater(() -> {
+            setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+            initComponents(swingUI);
+        });
     }
 
     private void initComponents(SwingUI swingUI) {
@@ -23,31 +28,38 @@ class LoadingWindow extends JFrame {
         loadingParamsWindow.setResizable(false);
         loadingParamsWindow.setLayout(new BorderLayout(5, 5));
         loadingParamsWindow.getRootPane().setBorder(new EmptyBorder(5, 5, 5, 5));
+        loadingParamsWindow.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
+        loadingParamsWindow.addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowClosed(WindowEvent e) {
+                LoadingWindow.this.dispose();
+            }
+        });
 
         JXDatePicker startDatePicker = ElementsBuilder.createDatePicker();
         JXDatePicker endDatePicker = ElementsBuilder.createDatePicker();
 
-        Map<String, String> folders = Stream
-                .of(swingUI.showFolders().split(System.lineSeparator()))
-                .map(pair -> pair.split(": "))
-                .collect(Collectors.toMap(
-                        pair -> pair[1],
-                        pair -> pair[0]
-                ));
+//        Map<String, String> folders = Stream
+//                .of(swingUI.showFolders().split(System.lineSeparator()))
+//                .map(pair -> pair.split(": "))
+//                .collect(Collectors.toMap(
+//                        pair -> pair[1],
+//                        pair -> pair[0]
+//                ));
 
-        DefaultListModel<String> listModel = new DefaultListModel<>();
-        listModel.addElement("Все");
-        for (String folder : folders.keySet()) {
-            listModel.addElement(folder);
-        }
+//        DefaultListModel<String> listModel = new DefaultListModel<>();
+//        listModel.addElement("Все");
+//        for (String folder : folders.keySet()) {
+//            listModel.addElement(folder);
+//        }
 
-        JList<String> itemList = new JList<>(listModel);
-        itemList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        itemList.setFont(new Font("Arial", Font.PLAIN, 13));
+//        JList<String> itemList = new JList<>(listModel);
+//        itemList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+//        itemList.setFont(new Font("Arial", Font.PLAIN, 13));
 
-        JScrollPane scrollPane = new JScrollPane(itemList);
-        scrollPane.setBorder(BorderFactory.createTitledBorder("Папки"));
-        scrollPane.setPreferredSize(new Dimension(0, 190));
+//        JScrollPane scrollPane = new JScrollPane(itemList);
+//        scrollPane.setBorder(BorderFactory.createTitledBorder("Папки"));
+//        scrollPane.setPreferredSize(new Dimension(0, 190));
 
         JPanel datePanel = new JPanel(new FlowLayout());
         datePanel.setBorder(BorderFactory.createTitledBorder("Период"));
@@ -63,21 +75,21 @@ class LoadingWindow extends JFrame {
 
         cancelButton.addActionListener(e -> dispose());
         okButton.addActionListener(e -> {
+//            String selectedValue = itemList.getSelectedValue();
             String folderIDString = "all";
             String dateFromString = "";
             String dateToString = "";
-            String selectedValue = itemList.getSelectedValue();
-            if (selectedValue != null) {
-                if (folders.containsKey(selectedValue)) {
-                    folderIDString = folders.get(selectedValue);
-                }
-            }
-            if (startDatePicker.getDate() != null) {
-                dateFromString = sdf.format(startDatePicker.getDate());
-                if (endDatePicker.getDate() != null) {
-                    dateToString = sdf.format(endDatePicker.getDate());
-                }
-            }
+//            if (selectedValue != null) {
+//                if (folders.containsKey(selectedValue)) {
+//                    folderIDString = folders.get(selectedValue);
+//                }
+//            }
+//            if (startDatePicker.getDate() != null) {
+//                dateFromString = sdf.format(startDatePicker.getDate());
+//                if (endDatePicker.getDate() != null) {
+//                    dateToString = sdf.format(endDatePicker.getDate());
+//                }
+//            }
             swingUI.load(folderIDString, dateFromString, dateToString);
             dispose();
         });
@@ -85,7 +97,7 @@ class LoadingWindow extends JFrame {
         buttonPanel.add(cancelButton);
         buttonPanel.add(okButton);
 
-        loadingParamsWindow.add(scrollPane, BorderLayout.NORTH);
+//        loadingParamsWindow.add(scrollPane, BorderLayout.NORTH);
         loadingParamsWindow.add(datePanel, BorderLayout.CENTER);
         loadingParamsWindow.add(buttonPanel, BorderLayout.SOUTH);
         loadingParamsWindow.setLocationRelativeTo(this);

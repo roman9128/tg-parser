@@ -18,7 +18,7 @@ import java.util.Map;
 public class Main {
 
     public static void main(String[] args) {
-        View view = new SwingUI();
+        View view = new ConsoleUI();
         NoteStorageService storage = new NoteStorage();
 
         AnalyzerPresenter analyzerPresenter;

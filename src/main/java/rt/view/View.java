@@ -11,7 +11,9 @@ public interface View {
 
     void stopNotificationListener();
 
-    String showFolders();
+    void getFoldersIDsAndNames();
+
+    void getChannelsIDsAndNames();
 
     void load(String folderIDString, String dateFromString, String dateToString);
 

@@ -43,17 +43,21 @@ public class StoragePresenter implements Presenter {
             return;
         }
 
-        view.print("Поиск завершён");
+        StringBuilder sb = new StringBuilder();
+        sb.append("Поиск завершён").append(System.lineSeparator());
         if (storage.noSuitableNotes()) {
-            view.print("Нет отобранных сообщений");
+            sb.append("Нет отобранных сообщений").append(System.lineSeparator());
         } else {
-            view.print("Всего отобрано сообщений: " + storage.getSuitableNotesQuantity());
+            sb.append("Всего отобрано сообщений: ")
+                    .append(storage.getSuitableNotesQuantity())
+                    .append(System.lineSeparator());
             if (where.equals("text")) {
-                view.print("Количество сообщений, содержащих слова для поиска");
-                view.print(storage.getWordsStat());
+                sb.append("Количество сообщений, содержащих слова для поиска")
+                        .append(System.lineSeparator())
+                        .append(storage.getWordsStat());
             }
-            view.print("Чтобы загрузить отобранные сообщения, введи команду write x");
         }
+        view.print(sb.toString());
     }
 
     private void findNotesByTopic(String how, String[] what) {
@@ -82,5 +86,13 @@ public class StoragePresenter implements Presenter {
     public void clear() {
         storage.clearAll();
         view.print("Все загруженные сообщения удалены");
+    }
+
+    public boolean noAnyNotes() {
+        return storage.noAnyNotes();
+    }
+
+    public boolean noSuitableNotes() {
+        return storage.noSuitableNotes();
     }
 }

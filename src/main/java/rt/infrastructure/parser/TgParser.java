@@ -12,10 +12,12 @@ import rt.model.service.NoteStorageService;
 
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.stream.Collectors;
 
 public class TgParser implements ParserService {
 
@@ -28,7 +30,6 @@ public class TgParser implements ParserService {
     private final ConcurrentMap<Long, TdApi.Supergroup> supergroups = new ConcurrentHashMap<>();
     private final NoteStorageService storage;
     private final InteractionStarter starter;
-    private volatile boolean isReadyToLoadNewChannels = true;
 
     public TgParser(SimpleTelegramClientBuilder clientBuilder,
                     PhoneAuthentication authenticationData,
@@ -66,7 +67,7 @@ public class TgParser implements ParserService {
 
     private void onUpdateSuperGroup(TdApi.UpdateSupergroup updateSupergroup) {
         TdApi.Supergroup supergroup = updateSupergroup.supergroup;
-        if (isReadyToLoadNewChannels && supergroup.isChannel) {
+        if (supergroup.status.getConstructor() == TdApi.ChatMemberStatusMember.CONSTRUCTOR && supergroup.isChannel) {
             supergroups.put(transferChatID(supergroup.id), supergroup);
         }
     }
@@ -78,7 +79,8 @@ public class TgParser implements ParserService {
     }
 
     private void getChats() {
-        client.send(new TdApi.LoadChats());
+//        client.send(new TdApi.LoadChats());
+        client.send(new TdApi.GetChats());
     }
 
     private void getChannels() {
@@ -112,32 +114,31 @@ public class TgParser implements ParserService {
     }
 
     @Override
-    public String show() {
-        stopLoadingNewChannels();
-        StringBuilder builder = new StringBuilder();
-        for (int folderID : foldersInfo.keySet()) {
-            builder
-                    .append(folderID)
-                    .append(": ")
-                    .append(foldersInfo.get(folderID))
-                    .append(System.lineSeparator());
-//            for (Long channelId : chatsInFolders.get(folderID)) {
-//                builder
-//                        .append("\t")
-//                        .append(" - ")
-//                        .append(chats.get(channelId).title)
-//                        .append(System.lineSeparator());
-//            }
-        }
-        return builder.toString();
+    public Map<Integer, String> getFoldersIDsAndNames() {
+        return new LinkedHashMap<>(foldersInfo);
     }
 
     @Override
-    public void loadChannelsHistory(String folderIDString, String dateFromString, String dateToString) {
-        stopLoadingNewChannels();
-        Integer folderID = NumbersParserUtil.parseInteger(folderIDString);
-        Long dateFromUnix = NumbersParserUtil.parseUnixDateStartOfDay(dateFromString);
-        Long dateToUnix = NumbersParserUtil.parseUnixDateEndOfDay(dateToString);
+    public Set<Long> getChatsInFolder(Integer folderID) {
+        if (!foldersInfo.containsKey(folderID)) {
+            return new TreeSet<>();
+        } else {
+            return Arrays.stream(chatsInFolders.get(folderID))
+                    .filter(this::isSupergroupInChats)
+                    .boxed()
+                    .collect(Collectors.toCollection(TreeSet::new));
+        }
+    }
+
+    @Override
+    public Map<Long, String> getChannelsIDsAndNames() {
+        return supergroups.keySet().stream().collect(Collectors.toMap(
+                key -> key,
+                key -> chats.get(key).title));
+    }
+
+    @Override
+    public void loadChannelsHistory(Set<Long> channelsIDs, Long dateFromUnix, Long dateToUnix) {
         Long dateNowUnix = LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toEpochSecond();
 
         if (dateFromUnix >= dateToUnix) {
@@ -152,22 +153,17 @@ public class TgParser implements ParserService {
         chatHistoryLoader.setDateFromUnix(dateFromUnix);
         chatHistoryLoader.setDateToUnix(dateToUnix);
 
-        if (folderID == null) {
+        if (channelsIDs.isEmpty()) {
             Notifier.getInstance().addNotification("Начинаю загрузку со всех каналов");
-            for (Long channelID : supergroups.keySet()) {
-                loadChatHistory(channelID, dateFromUnix);
+            for (Long chatID : supergroups.keySet()) {
+                loadChatHistory(chatID, dateFromUnix);
             }
         } else {
-            if (chatsInFolders.containsKey(folderID)) {
-                Notifier.getInstance().addNotification("Начинаю загрузку сообщений из папки " + foldersInfo.get(folderID));
-                for (Long chatID : chatsInFolders.get(folderID)) {
-                    if (supergroups.containsKey(chatID)) {
-                        loadChatHistory(chatID, dateFromUnix);
-                    }
+            Notifier.getInstance().addNotification("Начинаю загрузку сообщений из указанных каналов");
+            for (Long chatID : channelsIDs) {
+                if (isSupergroupInChats(chatID)) {
+                    loadChatHistory(chatID, dateFromUnix);
                 }
-            } else {
-                Notifier.getInstance().addNotification("Нет такой папки");
-                return;
             }
         }
         chatHistoryLoader.removeSurplus();
@@ -219,6 +215,10 @@ public class TgParser implements ParserService {
         return -(1000000000000L + chatID);
     }
 
+    private boolean isSupergroupInChats(Long chatID) {
+        return supergroups.containsKey(chatID) && supergroups.get(chatID).status.getConstructor() == TdApi.ChatMemberStatusMember.CONSTRUCTOR;
+    }
+
     @Override
     public void logout() {
         client.send(new TdApi.LogOut()).thenAccept(ok -> {
@@ -240,16 +240,13 @@ public class TgParser implements ParserService {
         blockingExecutor.shutdownNow();
     }
 
-    private void stopLoadingNewChannels() {
-        isReadyToLoadNewChannels = false;
-    }
-
     private void prepareNotes() {
         while (!chatHistoryLoader.isEmpty()) {
             TdApi.Message message = chatHistoryLoader.takeMessage();
             String senderName = chats.get(message.chatId).title;
             storage.createNote(message, senderName);
         }
+        storage.removeCopies();
         storage.getNotesCommonPool().forEach(note -> {
             if (!note.hasLink()) {
                 getMsgLink(note);

@@ -1,11 +1,18 @@
 package rt.model.service;
 
+import java.util.Map;
+import java.util.Set;
+
 public interface ParserService extends AutoCloseable {
     void waitForExit() throws InterruptedException;
 
-    String show();
+    Map<Integer, String> getFoldersIDsAndNames();
 
-    void loadChannelsHistory(String folderIDString, String dateFromString, String dateToString);
+    Set<Long> getChatsInFolder(Integer folderID);
+
+    Map<Long, String> getChannelsIDsAndNames();
+
+    void loadChannelsHistory(Set<Long> from, Long dateFromUnix, Long dateToUnix);
 
     void close();
 
