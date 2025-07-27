@@ -13,6 +13,14 @@ class NumbersParserUtil {
         }
     }
 
+    static Integer parseIntegerOrGetZero(String numberString) {
+        try {
+            return Integer.parseInt(numberString);
+        } catch (NumberFormatException e) {
+            return 0;
+        }
+    }
+
     static Long parseUnixDateStartOfDay(String dateString) {
         try {
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy");

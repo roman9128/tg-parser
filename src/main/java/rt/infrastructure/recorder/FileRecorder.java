@@ -1,6 +1,6 @@
 package rt.infrastructure.recorder;
 
-import rt.infrastructure.config.PropertyHandler;
+import rt.infrastructure.config.ParsingPropertiesHandler;
 import rt.infrastructure.notifier.Notifier;
 import rt.model.note.Note;
 import rt.model.service.FileRecorderService;
@@ -17,7 +17,7 @@ public class FileRecorder implements FileRecorderService {
         this.storage = storage;
     }
 
-    public static void writeToFile(String path, String text) throws IOException {
+    private void writeToFile(String path, String text) throws IOException {
         try (FileWriter fileWriter = new FileWriter(path, true)) {
             fileWriter.write(text);
         }
@@ -50,13 +50,13 @@ public class FileRecorder implements FileRecorderService {
             if (!channelName.equals(senderName)) {
                 channelName = senderName;
                 try {
-                    FileRecorder.writeToFile(PropertyHandler.getFilePath(), ">>>>>>> Далее сообщения из канала " + channelName + System.lineSeparator());
+                    writeToFile(ParsingPropertiesHandler.getFilePath(), ">>>>>>> Далее сообщения из канала " + channelName + System.lineSeparator());
                 } catch (IOException e) {
                     Notifier.getInstance().addNotification("Ошибка при записи: " + e.getMessage());
                 }
             }
             try {
-                FileRecorder.writeToFile(PropertyHandler.getFilePath(), note.toString());
+                writeToFile(ParsingPropertiesHandler.getFilePath(), note.toString());
             } catch (IOException e) {
                 Notifier.getInstance().addNotification("Ошибка при записи в файл: " + e.getMessage());
             }

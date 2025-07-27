@@ -10,6 +10,7 @@ import rt.view.View;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -69,14 +70,12 @@ public class SwingUI implements View {
         executor.shutdownNow();
     }
 
-    @Override
-    public void getFoldersIDsAndNames() {
-
+    Map<Integer, String> getFoldersIDsAndNames() {
+        return parserPresenter.getFoldersIDsAndNames();
     }
 
-    @Override
-    public void getChannelsIDsAndNames() {
-
+    Map<Long, String> getChannelsIDsAndNames() {
+        return parserPresenter.getChannelsIDsAndNames();
     }
 
     void createLoadingWindow() {
@@ -84,8 +83,8 @@ public class SwingUI implements View {
     }
 
     @Override
-    public void load(String folderIDString, String dateFromString, String dateToString) {
-        parserPresenter.load(folderIDString, dateFromString, dateToString);
+    public void load(String source, String dateFromString, String dateToString) {
+        parserPresenter.load(source, dateFromString, dateToString);
     }
 
     void createSearchWindow() {
@@ -138,5 +137,10 @@ public class SwingUI implements View {
     @Override
     public String askParameter(String who, String question) {
         return authWindow.askParameter(who, question);
+    }
+
+    @Override
+    public void setMaxAmount(String arg) {
+        parserPresenter.setMessagesToDownload(arg);
     }
 }

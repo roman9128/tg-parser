@@ -10,9 +10,6 @@ import java.util.concurrent.atomic.AtomicReference;
 public class PhoneAuthentication implements AuthenticationSupplier<AuthenticationData> {
 
     private static final class State implements AuthenticationData {
-        final boolean isQr = false;
-        final boolean isBot = false;
-        final String botToken = null;
         final String phoneNumber;
 
         private State(String phoneNumber) {
@@ -21,12 +18,12 @@ public class PhoneAuthentication implements AuthenticationSupplier<Authenticatio
 
         @Override
         public boolean isQrCode() {
-            return isQr;
+            return false;
         }
 
         @Override
         public boolean isBot() {
-            return isBot;
+            return false;
         }
 
         @Override

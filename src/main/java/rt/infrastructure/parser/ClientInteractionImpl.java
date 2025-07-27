@@ -7,28 +7,26 @@ import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 
-class ClientInteractionImpl implements ClientInteraction {
+public class ClientInteractionImpl implements ClientInteraction {
     private final ExecutorService blockingExecutor;
-    private final Authenticable authenticable;
+    private final PhoneAuthentication phoneAuthentication;
     private final ParameterRequester parameterRequester;
 
-    ClientInteractionImpl(ExecutorService blockingExecutor, Authenticable authenticable, ParameterRequester parameterRequester) {
+    public ClientInteractionImpl(ExecutorService blockingExecutor, PhoneAuthentication phoneAuthentication, ParameterRequester parameterRequester) {
         this.blockingExecutor = blockingExecutor;
-        this.authenticable = authenticable;
+        this.phoneAuthentication = phoneAuthentication;
         this.parameterRequester = parameterRequester;
     }
 
     @Override
     public CompletableFuture<String> onParameterRequest(InputParameter parameter, ParameterInfo parameterInfo) {
-        var authSupplier = this.authenticable.getAuthenticationSupplier();
-        AuthenticationData authData = this.getAuthDataNowOrNull(authSupplier);
         return CompletableFuture.supplyAsync(() -> {
-            boolean useRealWho = authData != null;
+            boolean useRealWho = phoneAuthentication != null;
             String who;
             if (!useRealWho) {
                 who = "Новый пользователь";
             } else {
-                who = "+" + authData.getUserPhoneNumber();
+                who = "+" + phoneAuthentication.get().getNow(null).getUserPhoneNumber();
             }
             boolean trim = false;
             String question;
@@ -51,13 +49,5 @@ class ClientInteractionImpl implements ClientInteraction {
             String result = parameterRequester.askParameter(who, question);
             return trim ? result.trim() : Objects.requireNonNull(result);
         }, this.blockingExecutor);
-    }
-
-    private AuthenticationData getAuthDataNowOrNull(AuthenticationSupplier<?> authSupplier) {
-        try {
-            return authSupplier.get().getNow(null);
-        } catch (Throwable thr) {
-            return null;
-        }
     }
 }

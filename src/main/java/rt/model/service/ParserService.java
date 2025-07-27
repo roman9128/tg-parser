@@ -17,4 +17,6 @@ public interface ParserService extends AutoCloseable {
     void close();
 
     void logout();
+
+    void setMessagesToDownload(int value);
 }

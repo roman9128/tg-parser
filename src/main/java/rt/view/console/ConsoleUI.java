@@ -1,6 +1,6 @@
 package rt.view.console;
 
-import rt.infrastructure.config.PropertyHandler;
+import rt.infrastructure.config.ParsingPropertiesHandler;
 import rt.infrastructure.notifier.Notifier;
 import rt.presenter.Presenter;
 import rt.presenter.analyzer.AnalyzerPresenter;
@@ -9,6 +9,7 @@ import rt.presenter.recorder.RecorderPresenter;
 import rt.presenter.storage.StoragePresenter;
 import rt.view.View;
 
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -69,6 +70,9 @@ public class ConsoleUI implements View {
                     case "menu" -> {
                         printMenu();
                     }
+                    case "set" -> {
+                        setMaxAmount(args[1]);
+                    }
                     default -> {
                         System.out.println("неизвестная команда");
                     }
@@ -99,13 +103,12 @@ public class ConsoleUI implements View {
         executor.shutdownNow();
     }
 
-    public void showFoldersAndChannels() {
-        getFoldersIDsAndNames();
-        getChannelsIDsAndNames();
+    private void showFoldersAndChannels() {
+        showFoldersIDsAndNames();
+        showChannelsIDsAndNames();
     }
 
-    @Override
-    public void getFoldersIDsAndNames() {
+    private void showFoldersIDsAndNames() {
         StringBuilder builder = new StringBuilder();
         parserPresenter.getFoldersIDsAndNames()
                 .forEach((k, v) -> builder
@@ -114,8 +117,7 @@ public class ConsoleUI implements View {
         print(builder.toString());
     }
 
-    @Override
-    public void getChannelsIDsAndNames() {
+    private void showChannelsIDsAndNames() {
         StringBuilder builder = new StringBuilder();
         parserPresenter.getChannelsIDsAndNames()
                 .forEach((k, v) -> builder
@@ -177,7 +179,7 @@ public class ConsoleUI implements View {
                 + "* - номера папок или каналов через запятую без пробелов для загрузки сообщений только из указанных источников" + System.lineSeparator()
                 + "* - all для загрузки сообщений из всех пабликов" + System.lineSeparator()
                 + "* вместо DD.MM.YYYY может быть указана дата в данном формате" + System.lineSeparator()
-                + "* - если даты не указаны вообще, то будет загружено примерно " + PropertyHandler.getMessagesToDownload() + " сообщ. с канала" + System.lineSeparator()
+                + "* - если даты не указаны вообще, то будет загружено примерно " + ParsingPropertiesHandler.getMessagesToDownload() + " сообщ. с канала" + System.lineSeparator()
                 + "* - если указана одна дата, то загрузятся сообщения с начала указанного дня до текущего момента" + System.lineSeparator()
                 + "* - если указано две даты, то загрузятся сообщения с начала первого указанного дня до конца второго указанного дня" + System.lineSeparator()
                 + "* первый параметр (Х) можно не указывать, если далее нет дат" + System.lineSeparator()
@@ -204,6 +206,8 @@ public class ConsoleUI implements View {
                 + "* * * * * * * * * * * * * *" + System.lineSeparator()
                 + "* clear - удалить загруженное" + System.lineSeparator()
                 + "* * * * * * * * * * * * * *" + System.lineSeparator()
+                + "* set X - установить количество сообщений для загрузки из одного канала, если загружать без указания даты (вместо X число от 100 до 5000)" + System.lineSeparator()
+                + "* * * * * * * * * * * * * *" + System.lineSeparator()
                 + "* stop - выход (авторизация сохранена)" + System.lineSeparator()
                 + "* * * * * * * * * * * * * *" + System.lineSeparator()
                 + "* logout - выйти из аккаунта" + System.lineSeparator()
@@ -218,5 +222,10 @@ public class ConsoleUI implements View {
     @Override
     public String askParameter(String who, String question) {
         return ConsoleInput.askParameter(who, question);
+    }
+
+    @Override
+    public void setMaxAmount(String arg) {
+        parserPresenter.setMessagesToDownload(arg);
     }
 }

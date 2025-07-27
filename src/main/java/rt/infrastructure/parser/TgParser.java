@@ -1,14 +1,16 @@
 package rt.infrastructure.parser;
 
-import it.tdlight.client.*;
+import it.tdlight.client.ParameterInfo;
+import it.tdlight.client.ParameterInfoCode;
+import it.tdlight.client.SimpleTelegramClient;
 import it.tdlight.jni.TdApi;
+import rt.infrastructure.config.ParsingPropertiesChanger;
+import rt.infrastructure.config.ParsingPropertiesHandler;
 import rt.infrastructure.notifier.Notifier;
-import rt.model.note.*;
-import rt.infrastructure.config.PropertyHandler;
+import rt.model.note.Note;
 import rt.model.service.InteractionStarter;
-import rt.model.service.ParameterRequester;
-import rt.model.service.ParserService;
 import rt.model.service.NoteStorageService;
+import rt.model.service.ParserService;
 
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -23,31 +25,36 @@ public class TgParser implements ParserService {
 
     private final SimpleTelegramClient client;
     private final ChatHistoryLoader chatHistoryLoader = new ChatHistoryLoader();
-    private final ExecutorService blockingExecutor = Executors.newSingleThreadExecutor();
+    private final ExecutorService blockingExecutor;
     private final ConcurrentMap<Long, TdApi.Chat> chats = new ConcurrentHashMap<>();
     private final ConcurrentMap<Integer, String> foldersInfo = new ConcurrentHashMap<>();
     private final ConcurrentMap<Integer, long[]> chatsInFolders = new ConcurrentHashMap<>();
     private final ConcurrentMap<Long, TdApi.Supergroup> supergroups = new ConcurrentHashMap<>();
     private final NoteStorageService storage;
     private final InteractionStarter starter;
+    private final ParsingPropertiesChanger parsingPropertiesChanger = new ParsingPropertiesChanger();
 
-    public TgParser(SimpleTelegramClientBuilder clientBuilder,
-                    PhoneAuthentication authenticationData,
-                    NoteStorageService storage, ParameterRequester parameterRequester, InteractionStarter starter) {
+    public TgParser(SimpleTelegramClient client,
+                    NoteStorageService storage,
+                    ExecutorService blockingExecutor,
+                    InteractionStarter starter) {
+
+
+
+
+        this.blockingExecutor = blockingExecutor;
         this.storage = storage;
         this.starter = starter;
-        clientBuilder.addUpdateHandler(TdApi.UpdateAuthorizationState.class, this::onUpdateAuthorizationState);
-        clientBuilder.addUpdateHandler(TdApi.UpdateNewChat.class, this::onUpdateChat);
-        clientBuilder.addUpdateHandler(TdApi.UpdateSupergroup.class, this::onUpdateSuperGroup);
-        clientBuilder.addUpdateHandler(TdApi.UpdateChatFolders.class, this::onUpdateFolder);
-        this.client = clientBuilder.build(authenticationData);
-        client.setClientInteraction(new ClientInteractionImpl(blockingExecutor, client, parameterRequester));
+        client.addUpdateHandler(TdApi.UpdateAuthorizationState.class, this::onUpdateAuthorizationState);
+        client.addUpdateHandler(TdApi.UpdateNewChat.class, this::onUpdateChat);
+        client.addUpdateHandler(TdApi.UpdateSupergroup.class, this::onUpdateSuperGroup);
+        client.addUpdateHandler(TdApi.UpdateChatFolders.class, this::onUpdateFolder);
+        this.client = client;
     }
 
     private void onUpdateAuthorizationState(TdApi.UpdateAuthorizationState update) {
         TdApi.AuthorizationState authorizationState = update.authorizationState;
         if (authorizationState instanceof TdApi.AuthorizationStateReady) {
-            Notifier.getInstance().addNotification("Авторизован");
             getChats();
             getChannels();
             getFoldersInfo();
@@ -173,8 +180,8 @@ public class TgParser implements ParserService {
 
     private void loadChatHistory(Long channelID, Long dateFromUnix) {
         Notifier.getInstance().addNotification("Загружаю сообщения из " + chats.get(channelID).title);
-        int messagesLeft = PropertyHandler.getMessagesToDownload();
-        int messagesToStop = PropertyHandler.getMessagesToStop();
+        int messagesLeft = ParsingPropertiesHandler.getMessagesToDownload();
+        int messagesToStop = ParsingPropertiesHandler.getMessagesToStop();
         long fromMessageID = 0;
         while (true) {
             client.send(
@@ -263,5 +270,10 @@ public class TgParser implements ParserService {
                         note.setMsgLink(link.link);
                     }
                 });
+    }
+
+    @Override
+    public void setMessagesToDownload(int value) {
+        parsingPropertiesChanger.setMessagesAmountToDownloadFromOneChannelIfStopDateIsNotSet(value);
     }
 }

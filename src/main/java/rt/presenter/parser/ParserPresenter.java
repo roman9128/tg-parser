@@ -3,13 +3,11 @@ package rt.presenter.parser;
 import it.tdlight.Init;
 import it.tdlight.Log;
 import it.tdlight.Slf4JLogMessageHandler;
-import it.tdlight.client.APIToken;
-import it.tdlight.client.SimpleTelegramClientBuilder;
-import it.tdlight.client.SimpleTelegramClientFactory;
-import it.tdlight.client.TDLibSettings;
+import it.tdlight.client.*;
+import rt.infrastructure.config.AppPropertiesHandler;
+import rt.infrastructure.parser.ClientInteractionImpl;
 import rt.infrastructure.parser.PhoneAuthentication;
 import rt.infrastructure.parser.TgParser;
-import rt.infrastructure.config.PropertyHandler;
 import rt.model.service.InteractionStarter;
 import rt.model.service.ParameterRequester;
 import rt.model.service.ParserService;
@@ -32,6 +30,7 @@ public class ParserPresenter implements Presenter, ParameterRequester, Interacti
     private final View view;
     private final NoteStorageService storage;
     private final ExecutorService executor = Executors.newFixedThreadPool(3);
+    private final ExecutorService blockingExecutor = Executors.newSingleThreadExecutor();
 
     public ParserPresenter(View view, NoteStorageService storage) {
         this.view = view;
@@ -43,14 +42,16 @@ public class ParserPresenter implements Presenter, ParameterRequester, Interacti
                     try {
                         Init.init();
                         Log.setLogMessageHandler(1, new Slf4JLogMessageHandler());
+                        APIToken apiToken = new APIToken(AppPropertiesHandler.getApiID(), AppPropertiesHandler.getApiHash());
+                        TDLibSettings settings = TDLibSettings.create(apiToken);
+                        Path sessionPath = Paths.get("session");
+                        settings.setDatabaseDirectoryPath(sessionPath.resolve("data"));
                         try (SimpleTelegramClientFactory clientFactory = new SimpleTelegramClientFactory()) {
-                            APIToken apiToken = new APIToken(PropertyHandler.getApiID(), PropertyHandler.getApiHash());
-                            TDLibSettings settings = TDLibSettings.create(apiToken);
-                            Path sessionPath = Paths.get("session");
-                            settings.setDatabaseDirectoryPath(sessionPath.resolve("data"));
                             SimpleTelegramClientBuilder clientBuilder = clientFactory.builder(settings);
                             PhoneAuthentication authData = new PhoneAuthentication(this);
-                            try (TgParser tgParser = new TgParser(clientBuilder, authData, storage, this, this)) {
+                            SimpleTelegramClient client = clientBuilder.build(authData);
+                            client.setClientInteraction(new ClientInteractionImpl(blockingExecutor, authData, this));
+                            try (TgParser tgParser = new TgParser(client, storage, blockingExecutor, this)) {
                                 service = tgParser;
                                 view.startNotificationListener();
                                 view.print("Готов к работе");
@@ -116,5 +117,9 @@ public class ParserPresenter implements Presenter, ParameterRequester, Interacti
     @Override
     public String askParameter(String who, String question) {
         return view.askParameter(who, question);
+    }
+
+    public void setMessagesToDownload(String value) {
+        service.setMessagesToDownload(NumbersParserUtil.parseIntegerOrGetZero(value));
     }
 }

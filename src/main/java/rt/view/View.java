@@ -11,10 +11,6 @@ public interface View {
 
     void stopNotificationListener();
 
-    void getFoldersIDsAndNames();
-
-    void getChannelsIDsAndNames();
-
     void load(String folderIDString, String dateFromString, String dateToString);
 
     void find(String[] args);
@@ -32,4 +28,6 @@ public interface View {
     void print(String text);
 
     String askParameter(String who, String question);
+
+    void setMaxAmount(String arg);
 }

@@ -8,6 +8,8 @@ import java.awt.*;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.text.SimpleDateFormat;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -39,27 +41,29 @@ class LoadingWindow extends JFrame {
         JXDatePicker startDatePicker = ElementsBuilder.createDatePicker();
         JXDatePicker endDatePicker = ElementsBuilder.createDatePicker();
 
-//        Map<String, String> folders = Stream
-//                .of(swingUI.showFolders().split(System.lineSeparator()))
-//                .map(pair -> pair.split(": "))
-//                .collect(Collectors.toMap(
-//                        pair -> pair[1],
-//                        pair -> pair[0]
-//                ));
+        Map<String, String> commonMap = Stream.concat(
+                        swingUI.getFoldersIDsAndNames().entrySet().stream(),
+                        swingUI.getChannelsIDsAndNames().entrySet().stream()
+                )
+                .collect(Collectors.toMap(
+                        e -> e.getValue().replaceAll("[^\\p{L}\\p{N} ]", ""),
+                        e -> String.valueOf(e.getKey()),
+                        (oldID, newID) -> newID
+                ));
 
-//        DefaultListModel<String> listModel = new DefaultListModel<>();
-//        listModel.addElement("Все");
-//        for (String folder : folders.keySet()) {
-//            listModel.addElement(folder);
-//        }
+        DefaultListModel<String> listModel = new DefaultListModel<>();
+        listModel.addElement("Все");
+        for (String key : commonMap.keySet()) {
+            listModel.addElement(key);
+        }
 
-//        JList<String> itemList = new JList<>(listModel);
-//        itemList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-//        itemList.setFont(new Font("Arial", Font.PLAIN, 13));
+        JList<String> itemList = new JList<>(listModel);
+        itemList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        itemList.setFont(new Font("Arial", Font.PLAIN, 13));
 
-//        JScrollPane scrollPane = new JScrollPane(itemList);
-//        scrollPane.setBorder(BorderFactory.createTitledBorder("Папки"));
-//        scrollPane.setPreferredSize(new Dimension(0, 190));
+        JScrollPane scrollPane = new JScrollPane(itemList);
+        scrollPane.setBorder(BorderFactory.createTitledBorder("Папки"));
+        scrollPane.setPreferredSize(new Dimension(0, 190));
 
         JPanel datePanel = new JPanel(new FlowLayout());
         datePanel.setBorder(BorderFactory.createTitledBorder("Период"));
@@ -75,29 +79,29 @@ class LoadingWindow extends JFrame {
 
         cancelButton.addActionListener(e -> dispose());
         okButton.addActionListener(e -> {
-//            String selectedValue = itemList.getSelectedValue();
-            String folderIDString = "all";
+            String selectedValue = itemList.getSelectedValue();
+            String source = "all";
             String dateFromString = "";
             String dateToString = "";
-//            if (selectedValue != null) {
-//                if (folders.containsKey(selectedValue)) {
-//                    folderIDString = folders.get(selectedValue);
-//                }
-//            }
-//            if (startDatePicker.getDate() != null) {
-//                dateFromString = sdf.format(startDatePicker.getDate());
-//                if (endDatePicker.getDate() != null) {
-//                    dateToString = sdf.format(endDatePicker.getDate());
-//                }
-//            }
-            swingUI.load(folderIDString, dateFromString, dateToString);
+            if (selectedValue != null) {
+                if (commonMap.containsKey(selectedValue)) {
+                    source = commonMap.get(selectedValue);
+                }
+            }
+            if (startDatePicker.getDate() != null) {
+                dateFromString = sdf.format(startDatePicker.getDate());
+                if (endDatePicker.getDate() != null) {
+                    dateToString = sdf.format(endDatePicker.getDate());
+                }
+            }
+            swingUI.load(source, dateFromString, dateToString);
             dispose();
         });
 
         buttonPanel.add(cancelButton);
         buttonPanel.add(okButton);
 
-//        loadingParamsWindow.add(scrollPane, BorderLayout.NORTH);
+        loadingParamsWindow.add(scrollPane, BorderLayout.NORTH);
         loadingParamsWindow.add(datePanel, BorderLayout.CENTER);
         loadingParamsWindow.add(buttonPanel, BorderLayout.SOUTH);
         loadingParamsWindow.setLocationRelativeTo(this);
