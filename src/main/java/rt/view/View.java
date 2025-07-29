@@ -3,7 +3,7 @@ package rt.view;
 import rt.presenter.Presenter;
 
 public interface View {
-    void setPresenters(Presenter presenter1, Presenter presenter2, Presenter presenter3, Presenter presenter4);
+    void setPresenters(Presenter presenter1, Presenter presenter2);
 
     void startInteractions();
 

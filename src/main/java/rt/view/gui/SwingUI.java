@@ -2,9 +2,7 @@ package rt.view.gui;
 
 import rt.infrastructure.notifier.Notifier;
 import rt.presenter.Presenter;
-import rt.presenter.analyzer.AnalyzerPresenter;
 import rt.presenter.parser.ParserPresenter;
-import rt.presenter.recorder.RecorderPresenter;
 import rt.presenter.storage.StoragePresenter;
 import rt.view.View;
 
@@ -18,8 +16,6 @@ public class SwingUI implements View {
 
     private ParserPresenter parserPresenter;
     private StoragePresenter storagePresenter;
-    private RecorderPresenter recorderPresenter;
-    private AnalyzerPresenter analyzerPresenter;
 
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
 
@@ -34,15 +30,9 @@ public class SwingUI implements View {
     }
 
     @Override
-    public void setPresenters(Presenter presenter1, Presenter presenter2, Presenter presenter3, Presenter presenter4) {
+    public void setPresenters(Presenter presenter1, Presenter presenter2) {
         this.parserPresenter = (ParserPresenter) presenter1;
         this.storagePresenter = (StoragePresenter) presenter2;
-        this.recorderPresenter = (RecorderPresenter) presenter3;
-        if (presenter4 instanceof AnalyzerPresenter) {
-            this.analyzerPresenter = (AnalyzerPresenter) presenter4;
-        } else {
-            this.analyzerPresenter = null;
-        }
     }
 
     @Override
@@ -102,13 +92,13 @@ public class SwingUI implements View {
 
     @Override
     public void write(String value) {
-        recorderPresenter.write(value);
+        parserPresenter.write(value);
     }
 
     @Override
     public void classify() {
-        if (analyzerPresenter != null) {
-            analyzerPresenter.classify();
+        if (parserPresenter.analyzerIsAvailable()) {
+            parserPresenter.classify();
         } else {
             print("Анализатор выключен");
         }

@@ -1,17 +1,23 @@
 package rt.infrastructure.parser;
 
-import it.tdlight.client.ParameterInfo;
-import it.tdlight.client.ParameterInfoCode;
-import it.tdlight.client.SimpleTelegramClient;
+import it.tdlight.Init;
+import it.tdlight.Log;
+import it.tdlight.Slf4JLogMessageHandler;
+import it.tdlight.client.*;
 import it.tdlight.jni.TdApi;
+import it.tdlight.util.UnsupportedNativeLibraryException;
+import rt.infrastructure.config.AppPropertiesHandler;
 import rt.infrastructure.config.ParsingPropertiesChanger;
 import rt.infrastructure.config.ParsingPropertiesHandler;
 import rt.infrastructure.notifier.Notifier;
 import rt.model.note.Note;
 import rt.model.service.InteractionStarter;
 import rt.model.service.NoteStorageService;
+import rt.model.service.ParameterRequester;
 import rt.model.service.ParserService;
 
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.*;
@@ -25,7 +31,6 @@ public class TgParser implements ParserService {
 
     private final SimpleTelegramClient client;
     private final ChatHistoryLoader chatHistoryLoader = new ChatHistoryLoader();
-    private final ExecutorService blockingExecutor;
     private final ConcurrentMap<Long, TdApi.Chat> chats = new ConcurrentHashMap<>();
     private final ConcurrentMap<Integer, String> foldersInfo = new ConcurrentHashMap<>();
     private final ConcurrentMap<Integer, long[]> chatsInFolders = new ConcurrentHashMap<>();
@@ -33,22 +38,29 @@ public class TgParser implements ParserService {
     private final NoteStorageService storage;
     private final InteractionStarter starter;
     private final ParsingPropertiesChanger parsingPropertiesChanger = new ParsingPropertiesChanger();
+    private final ExecutorService blockingExecutor = Executors.newSingleThreadExecutor();
 
-    public TgParser(SimpleTelegramClient client,
+    public TgParser(SimpleTelegramClientFactory clientFactory,
                     NoteStorageService storage,
-                    ExecutorService blockingExecutor,
+                    ParameterRequester parameterRequester,
                     InteractionStarter starter) {
 
-
-
-
-        this.blockingExecutor = blockingExecutor;
         this.storage = storage;
         this.starter = starter;
+//        Init.init();
+        Log.setLogMessageHandler(1, new Slf4JLogMessageHandler());
+        APIToken apiToken = new APIToken(AppPropertiesHandler.getApiID(), AppPropertiesHandler.getApiHash());
+        TDLibSettings settings = TDLibSettings.create(apiToken);
+        Path sessionPath = Paths.get("session");
+        settings.setDatabaseDirectoryPath(sessionPath.resolve("data"));
+        SimpleTelegramClientBuilder clientBuilder = clientFactory.builder(settings);
+        PhoneAuthentication authData = new PhoneAuthentication(parameterRequester);
+        SimpleTelegramClient client = clientBuilder.build(authData);
         client.addUpdateHandler(TdApi.UpdateAuthorizationState.class, this::onUpdateAuthorizationState);
         client.addUpdateHandler(TdApi.UpdateNewChat.class, this::onUpdateChat);
         client.addUpdateHandler(TdApi.UpdateSupergroup.class, this::onUpdateSuperGroup);
         client.addUpdateHandler(TdApi.UpdateChatFolders.class, this::onUpdateFolder);
+        client.setClientInteraction(new ClientInteractionImpl(blockingExecutor, authData, parameterRequester));
         this.client = client;
     }
 
