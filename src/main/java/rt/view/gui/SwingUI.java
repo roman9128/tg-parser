@@ -1,9 +1,7 @@
 package rt.view.gui;
 
 import rt.infrastructure.notifier.Notifier;
-import rt.presenter.Presenter;
-import rt.presenter.parser.ParserPresenter;
-import rt.presenter.storage.StoragePresenter;
+import rt.service_manager.ServiceManager;
 import rt.view.View;
 
 import java.time.LocalDateTime;
@@ -14,8 +12,7 @@ import java.util.concurrent.Executors;
 
 public class SwingUI implements View {
 
-    private ParserPresenter parserPresenter;
-    private StoragePresenter storagePresenter;
+    private ServiceManager serviceManager;
 
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
 
@@ -30,9 +27,8 @@ public class SwingUI implements View {
     }
 
     @Override
-    public void setPresenters(Presenter presenter1, Presenter presenter2) {
-        this.parserPresenter = (ParserPresenter) presenter1;
-        this.storagePresenter = (StoragePresenter) presenter2;
+    public void setServiceManager(ServiceManager serviceManager) {
+        this.serviceManager = serviceManager;
     }
 
     @Override
@@ -61,11 +57,11 @@ public class SwingUI implements View {
     }
 
     Map<Integer, String> getFoldersIDsAndNames() {
-        return parserPresenter.getFoldersIDsAndNames();
+        return serviceManager.getFoldersIDsAndNames();
     }
 
     Map<Long, String> getChannelsIDsAndNames() {
-        return parserPresenter.getChannelsIDsAndNames();
+        return serviceManager.getChannelsIDsAndNames();
     }
 
     void createLoadingWindow() {
@@ -74,11 +70,11 @@ public class SwingUI implements View {
 
     @Override
     public void load(String source, String dateFromString, String dateToString) {
-        parserPresenter.load(source, dateFromString, dateToString);
+        serviceManager.load(source, dateFromString, dateToString);
     }
 
     void createSearchWindow() {
-        if (storagePresenter.noAnyNotes()) {
+        if (serviceManager.noAnyNotes()) {
             find(new String[]{});
         } else {
             new SearchWindow(this);
@@ -87,18 +83,18 @@ public class SwingUI implements View {
 
     @Override
     public void find(String[] args) {
-        storagePresenter.find(args);
+        serviceManager.find(args);
     }
 
     @Override
     public void write(String value) {
-        parserPresenter.write(value);
+        serviceManager.write(value);
     }
 
     @Override
     public void classify() {
-        if (parserPresenter.analyzerIsAvailable()) {
-            parserPresenter.classify();
+        if (serviceManager.analyzerIsAvailable()) {
+            serviceManager.classify();
         } else {
             print("Анализатор выключен");
         }
@@ -106,17 +102,17 @@ public class SwingUI implements View {
 
     @Override
     public void clear() {
-        storagePresenter.clear();
+        serviceManager.clear();
     }
 
     @Override
     public void stopParser() {
-        parserPresenter.close();
+        serviceManager.close();
     }
 
     @Override
     public void logout() {
-        parserPresenter.logout();
+        serviceManager.logout();
     }
 
     @Override
@@ -131,6 +127,6 @@ public class SwingUI implements View {
 
     @Override
     public void setMaxAmount(String arg) {
-        parserPresenter.setMessagesToDownload(arg);
+        serviceManager.setMessagesToDownload(arg);
     }
 }

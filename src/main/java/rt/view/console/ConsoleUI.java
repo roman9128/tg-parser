@@ -2,9 +2,7 @@ package rt.view.console;
 
 import rt.infrastructure.config.ParsingPropertiesHandler;
 import rt.infrastructure.notifier.Notifier;
-import rt.presenter.Presenter;
-import rt.presenter.parser.ParserPresenter;
-import rt.presenter.storage.StoragePresenter;
+import rt.service_manager.ServiceManager;
 import rt.view.View;
 
 import java.util.concurrent.ExecutorService;
@@ -12,13 +10,11 @@ import java.util.concurrent.Executors;
 
 public class ConsoleUI implements View {
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
-    private ParserPresenter parserPresenter;
-    private StoragePresenter storagePresenter;
+    private ServiceManager serviceManager;
 
     @Override
-    public void setPresenters(Presenter presenter1, Presenter presenter2) {
-        this.parserPresenter = (ParserPresenter) presenter1;
-        this.storagePresenter = (StoragePresenter) presenter2;
+    public void setServiceManager(ServiceManager serviceManager) {
+        this.serviceManager = serviceManager;
     }
 
     @Override
@@ -99,7 +95,7 @@ public class ConsoleUI implements View {
 
     private void showFoldersIDsAndNames() {
         StringBuilder builder = new StringBuilder();
-        parserPresenter.getFoldersIDsAndNames()
+        serviceManager.getFoldersIDsAndNames()
                 .forEach((k, v) -> builder
                         .append(k).append(": ").append(v)
                         .append(System.lineSeparator()));
@@ -108,7 +104,7 @@ public class ConsoleUI implements View {
 
     private void showChannelsIDsAndNames() {
         StringBuilder builder = new StringBuilder();
-        parserPresenter.getChannelsIDsAndNames()
+        serviceManager.getChannelsIDsAndNames()
                 .forEach((k, v) -> builder
                         .append(k).append(": ").append(v)
                         .append(System.lineSeparator()));
@@ -117,18 +113,18 @@ public class ConsoleUI implements View {
 
     @Override
     public void load(String source, String dateFromString, String dateToString) {
-        parserPresenter.load(source, dateFromString, dateToString);
+        serviceManager.load(source, dateFromString, dateToString);
     }
 
     @Override
     public void find(String[] args) {
-        storagePresenter.find(args);
+        serviceManager.find(args);
     }
 
     @Override
     public void classify() {
-        if (parserPresenter.analyzerIsAvailable()) {
-            parserPresenter.classify();
+        if (serviceManager.analyzerIsAvailable()) {
+            serviceManager.classify();
         } else {
             print("Анализатор выключен");
         }
@@ -136,22 +132,22 @@ public class ConsoleUI implements View {
 
     @Override
     public void write(String value) {
-        parserPresenter.write(value);
+        serviceManager.write(value);
     }
 
     @Override
     public void clear() {
-        storagePresenter.clear();
+        serviceManager.clear();
     }
 
     @Override
     public void stopParser() {
-        parserPresenter.close();
+        serviceManager.close();
     }
 
     @Override
     public void logout() {
-        parserPresenter.logout();
+        serviceManager.logout();
     }
 
     private void printMenu() {
@@ -215,6 +211,6 @@ public class ConsoleUI implements View {
 
     @Override
     public void setMaxAmount(String arg) {
-        parserPresenter.setMessagesToDownload(arg);
+        serviceManager.setMessagesToDownload(arg);
     }
 }

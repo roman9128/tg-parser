@@ -1,9 +1,10 @@
 package rt.view;
 
-import rt.presenter.Presenter;
+import rt.service_manager.ServiceManager;
 
 public interface View {
-    void setPresenters(Presenter presenter1, Presenter presenter2);
+
+    void setServiceManager(ServiceManager serviceManager);
 
     void startInteractions();
 

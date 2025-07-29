@@ -2,8 +2,7 @@ package rt;
 
 import rt.infrastructure.storage.NoteStorage;
 import rt.model.service.NoteStorageService;
-import rt.presenter.parser.ParserPresenter;
-import rt.presenter.storage.StoragePresenter;
+import rt.service_manager.ServiceManager;
 import rt.view.View;
 import rt.view.console.ConsoleUI;
 
@@ -15,11 +14,10 @@ public class Main {
         View view = new ConsoleUI();
         NoteStorageService storage = new NoteStorage();
 
-        ParserPresenter parserPresenter = new ParserPresenter(view, storage);
-        StoragePresenter storagePresenter = new StoragePresenter(view, storage);
-        view.setPresenters(parserPresenter, storagePresenter);
+        ServiceManager serviceManager = new ServiceManager(view, storage);
+        view.setServiceManager(serviceManager);
 
-        parserPresenter.initService();
+        serviceManager.initService();
     }
 
     private static void countThreads() {
