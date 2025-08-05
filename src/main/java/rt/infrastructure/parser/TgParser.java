@@ -1,19 +1,17 @@
 package rt.infrastructure.parser;
 
-import it.tdlight.Init;
 import it.tdlight.Log;
 import it.tdlight.Slf4JLogMessageHandler;
 import it.tdlight.client.*;
 import it.tdlight.jni.TdApi;
-import it.tdlight.util.UnsupportedNativeLibraryException;
 import rt.infrastructure.config.AppPropertiesHandler;
 import rt.infrastructure.config.ParsingPropertiesChanger;
 import rt.infrastructure.config.ParsingPropertiesHandler;
 import rt.infrastructure.notifier.Notifier;
 import rt.model.note.Note;
-import rt.model.service.InteractionStarter;
+import rt.service_manager.InteractionStarter;
 import rt.model.service.NoteStorageService;
-import rt.model.service.ParameterRequester;
+import rt.service_manager.ParameterRequester;
 import rt.model.service.ParserService;
 
 import java.nio.file.Path;

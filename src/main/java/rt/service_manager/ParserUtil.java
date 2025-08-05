@@ -3,7 +3,9 @@ package rt.service_manager;
 import java.time.*;
 import java.time.format.DateTimeFormatter;
 
-class NumbersParserUtil {
+class ParserUtil {
+
+    private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("dd.MM.yyyy");
 
     static Long parseLongOrGetZero(String numberString) {
         try {
@@ -23,8 +25,7 @@ class NumbersParserUtil {
 
     static Long parseUnixDateStartOfDay(String dateString) {
         try {
-            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy");
-            LocalDate date = LocalDate.parse(dateString, formatter);
+            LocalDate date = LocalDate.parse(dateString, FORMATTER);
             return date.atStartOfDay(ZoneId.systemDefault()).toEpochSecond();
         } catch (Exception e) {
             return 0L;
@@ -33,11 +34,18 @@ class NumbersParserUtil {
 
     static Long parseUnixDateEndOfDay(String dateString) {
         try {
-            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy");
-            LocalDate date = LocalDate.parse(dateString, formatter).plusDays(1L);
+            LocalDate date = LocalDate.parse(dateString, FORMATTER).plusDays(1L);
             return date.atStartOfDay(ZoneId.systemDefault()).toEpochSecond();
         } catch (Exception e) {
             return Long.MAX_VALUE;
+        }
+    }
+
+    static LocalDate parseStringToLocalDateOrGetNull(String dateString) {
+        try {
+            return LocalDate.parse(dateString, FORMATTER);
+        } catch (Exception e) {
+            return null;
         }
     }
 }

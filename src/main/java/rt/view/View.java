@@ -1,34 +1,86 @@
 package rt.view;
 
+import rt.infrastructure.notifier.Notifier;
 import rt.service_manager.ServiceManager;
 
-public interface View {
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
-    void setServiceManager(ServiceManager serviceManager);
+public abstract class View {
 
-    void startInteractions();
+    protected final ExecutorService executor = Executors.newSingleThreadExecutor();
+    protected ServiceManager serviceManager;
 
-    void startNotificationListener();
+    public abstract void startInteractions();
 
-    void stopNotificationListener();
+    public abstract void print(String text);
 
-    void load(String folderIDString, String dateFromString, String dateToString);
+    public abstract void showPresets();
 
-    void find(String[] args);
+    public abstract String askParameter(String who, String question);
 
-    void write(String value);
+    public void setServiceManager(ServiceManager serviceManager) {
+        this.serviceManager = serviceManager;
+    }
 
-    void classify();
+    public void startNotificationListener() {
+        executor.execute(() -> {
+            while (!Thread.currentThread().isInterrupted()) {
+                try {
+                    print(Notifier.getInstance().getNotification());
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    break;
+                }
+            }
+        });
+    }
 
-    void clear();
+    public void stopNotificationListener() {
+        executor.shutdownNow();
+    }
 
-    void stopParser();
+    public void load(String source, String dateFromString, String dateToString) {
+        serviceManager.load(source, dateFromString, dateToString);
+    }
 
-    void logout();
+    public void find(String[] args) {
+        serviceManager.find(args);
+    }
 
-    void print(String text);
+    public void classify() {
+        if (serviceManager.analyzerIsAvailable()) {
+            serviceManager.classify();
+        } else {
+            print("Анализатор выключен");
+        }
+    }
 
-    String askParameter(String who, String question);
+    public void write(String value) {
+        serviceManager.write(value);
+    }
 
-    void setMaxAmount(String arg);
+    public void clear() {
+        serviceManager.clear();
+    }
+
+    public void stopParser() {
+        serviceManager.close();
+    }
+
+    public void logout() {
+        serviceManager.logout();
+    }
+
+    public void setMaxAmount(String arg) {
+        serviceManager.setMessagesToDownload(arg);
+    }
+
+    public void usePreset(String name) {
+        serviceManager.usePresetByName(name);
+    }
+
+    public void renamePreset(String oldName, String newName) {
+        serviceManager.renamePresetByName(oldName, newName);
+    }
 }

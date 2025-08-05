@@ -8,11 +8,6 @@ import java.util.Objects;
 
 class MainWindow extends JFrame {
 
-    private final Color black = new Color(30, 30, 30);
-    private final Color darkGray = new Color(40, 40, 40);
-    private final Color gray = new Color(66, 66, 66);
-    private final Color white = new Color(200, 200, 200);
-
     private JTextArea textArea;
     private final SwingUI swingUI;
 
@@ -23,17 +18,17 @@ class MainWindow extends JFrame {
             UIManager.put("OptionPane.yesButtonText", "Да");
             UIManager.put("OptionPane.noButtonText", "Нет");
             UIManager.put("OptionPane.cancelButtonText", "Отмена");
-            UIManager.put("ToolTip.background", darkGray);
-            UIManager.put("ToolTip.foreground", white);
+            UIManager.put("ToolTip.background", Colors.DARK_GRAY);
+            UIManager.put("ToolTip.foreground", Colors.WHITE);
             UIManager.put("ToolTip.border", BorderFactory.createCompoundBorder(
-                    BorderFactory.createLineBorder(white),
+                    BorderFactory.createLineBorder(Colors.WHITE),
                     BorderFactory.createEmptyBorder(5, 5, 5, 5)
             ));
             UIManager.put("ToolTip.font", new Font("SansSerif", Font.PLAIN, 12));
 
             setVisible(false);
             setTitle("Tg-Parser 2.0");
-            setSize(500, 350);
+            setSize(1000, 550);
             setResizable(false);
             setLocationRelativeTo(null);
 
@@ -52,24 +47,24 @@ class MainWindow extends JFrame {
     }
 
     private void initComponents() {
-        JButton loadButton = ElementsBuilder.createMainMenuButton("Загрузить", "Начать загрузку сообщений из телеграм-каналов", darkGray, white, gray);
-        JButton analyzeButton = ElementsBuilder.createMainMenuButton("Анализировать", "Запустить анализатор текста для определения тематик сообщений", darkGray, white, gray);
-        JButton findButton = ElementsBuilder.createMainMenuButton("Найти", "Запустить поиск сообщений по задаваемым параметрам", darkGray, white, gray);
-        JButton writeButton = ElementsBuilder.createMainMenuButton("Записать", "Записать все загруженные сообщения в текстовый файл", darkGray, white, gray);
-        JButton clearButton = ElementsBuilder.createMainMenuButton("Очистить", "Удалить все загруженные сообщения", darkGray, white, gray);
-        JButton logoutButton = ElementsBuilder.createMainMenuButton("Разлогиниться", "Выйти из программы и выйти из учётной записи (потребуется повторная авторизация при новом входе)", darkGray, white, gray);
+        JButton loadButton = ElementsBuilder.createMainMenuButton("Загрузить", "Начать загрузку сообщений из телеграм-каналов", Colors.DARK_GRAY, Colors.WHITE, Colors.GRAY);
+        JButton analyzeButton = ElementsBuilder.createMainMenuButton("Анализировать", "Запустить анализатор текста для определения тематик сообщений", Colors.DARK_GRAY, Colors.WHITE, Colors.GRAY);
+        JButton findButton = ElementsBuilder.createMainMenuButton("Найти", "Запустить поиск сообщений по задаваемым параметрам", Colors.DARK_GRAY, Colors.WHITE, Colors.GRAY);
+        JButton writeButton = ElementsBuilder.createMainMenuButton("Записать", "Записать все загруженные сообщения в текстовый файл", Colors.DARK_GRAY, Colors.WHITE, Colors.GRAY);
+        JButton clearButton = ElementsBuilder.createMainMenuButton("Очистить", "Удалить все загруженные сообщения", Colors.DARK_GRAY, Colors.WHITE, Colors.GRAY);
+        JButton logoutButton = ElementsBuilder.createMainMenuButton("Разлогиниться", "Выйти из программы и выйти из учётной записи (потребуется повторная авторизация при новом входе)", Colors.DARK_GRAY, Colors.WHITE, Colors.GRAY);
 
         JPanel mainPanel = new JPanel(new BorderLayout());
-        mainPanel.setBackground(darkGray);
+        mainPanel.setBackground(Colors.DARK_GRAY);
 
         JPanel leftPanel = new JPanel(new BorderLayout());
         leftPanel.setPreferredSize(new Dimension(150, 350));
         leftPanel.setBorder(BorderFactory.createEmptyBorder(0, 5, 0, 5));
-        leftPanel.setBackground(black);
+        leftPanel.setBackground(Colors.BLACK);
 
         JPanel mainButtonsPanel = new JPanel();
         mainButtonsPanel.setLayout(new BoxLayout(mainButtonsPanel, BoxLayout.Y_AXIS));
-        mainButtonsPanel.setBackground(black);
+        mainButtonsPanel.setBackground(Colors.BLACK);
         mainButtonsPanel.add(Box.createVerticalStrut(5));
         mainButtonsPanel.add(loadButton);
         mainButtonsPanel.add(Box.createVerticalStrut(5));
@@ -84,7 +79,7 @@ class MainWindow extends JFrame {
 
         JPanel bottomButtonsPanel = new JPanel();
         bottomButtonsPanel.setLayout(new BoxLayout(bottomButtonsPanel, BoxLayout.Y_AXIS));
-        bottomButtonsPanel.setBackground(black);
+        bottomButtonsPanel.setBackground(Colors.BLACK);
         bottomButtonsPanel.add(logoutButton);
         bottomButtonsPanel.add(Box.createVerticalStrut(5));
 
@@ -98,21 +93,21 @@ class MainWindow extends JFrame {
         textArea.setEditable(false);
         textArea.setLineWrap(true);
         textArea.setWrapStyleWord(true);
-        textArea.setBackground(gray);
-        textArea.setForeground(Color.WHITE);
-        textArea.setCaretColor(Color.WHITE);
+        textArea.setBackground(Colors.GRAY);
+        textArea.setForeground(Colors.WHITE);
+        textArea.setCaretColor(Colors.WHITE);
         textArea.setFont(new Font("SansSerif", Font.PLAIN, 12));
 
         JScrollPane scrollPane = new JScrollPane(textArea);
         scrollPane.setBorder(BorderFactory.createEmptyBorder(0, 5, 0, 0));
-        scrollPane.setBackground(gray);
+        scrollPane.setBackground(Colors.GRAY);
 
         JScrollBar verticalScrollBar = scrollPane.getVerticalScrollBar();
         verticalScrollBar.setOpaque(false);
         verticalScrollBar.setBackground(new Color(0, 0, 0, 0));
         verticalScrollBar.setUI(new BasicScrollBarUI() {
-            private final Color THUMB_COLOR = white;
-            private final Color TRACK_COLOR = gray;
+            private final Color THUMB_COLOR = Colors.WHITE;
+            private final Color TRACK_COLOR = Colors.GRAY;
 
             @Override
             protected void paintThumb(Graphics g, JComponent c, Rectangle thumbBounds) {

@@ -2,7 +2,7 @@ package rt.infrastructure.parser;
 
 import it.tdlight.client.AuthenticationData;
 import it.tdlight.client.AuthenticationSupplier;
-import rt.model.service.ParameterRequester;
+import rt.service_manager.ParameterRequester;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;

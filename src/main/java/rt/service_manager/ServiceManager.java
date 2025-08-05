@@ -1,20 +1,24 @@
 package rt.service_manager;
 
-import it.tdlight.client.*;
+import it.tdlight.client.SimpleTelegramClientFactory;
 import rt.infrastructure.analyzer.AnalyzerImpl;
+import rt.infrastructure.notifier.Notifier;
 import rt.infrastructure.parser.TgParser;
+import rt.infrastructure.preset.Presetter;
 import rt.infrastructure.recorder.FileRecorder;
+import rt.infrastructure.storage.NoteStorage;
+import rt.model.preset.Preset;
+import rt.model.preset.PresetDTO;
 import rt.model.service.*;
 import rt.nlp.NLPService;
-import rt.service_manager.NumbersParserUtil;
 import rt.view.View;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeSet;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class ServiceManager implements ParameterRequester, InteractionStarter {
@@ -24,13 +28,15 @@ public class ServiceManager implements ParameterRequester, InteractionStarter {
     private final View view;
     private final NoteStorageService storage;
     private final FileRecorderService recorderService;
+    private final PresetService presetService;
     private final ExecutorService executor = Executors.newFixedThreadPool(2);
     private final SimpleTelegramClientFactory clientFactory = new SimpleTelegramClientFactory();
 
-    public ServiceManager(View view, NoteStorageService storage) {
+    public ServiceManager(View view) {
         this.view = view;
-        this.storage = storage;
+        this.storage = new NoteStorage();
         this.recorderService = new FileRecorder(storage);
+        this.presetService = new Presetter();
         try {
             analyzerService = new AnalyzerImpl(storage, new NLPService());
         } catch (Exception e) {
@@ -38,7 +44,7 @@ public class ServiceManager implements ParameterRequester, InteractionStarter {
         }
     }
 
-    public void initService() {
+    public void init() {
         executor.execute(() -> {
                     try {
                         parserService = new TgParser(clientFactory, storage, this, this);
@@ -73,15 +79,16 @@ public class ServiceManager implements ParameterRequester, InteractionStarter {
 
     public void load(String userChoiceInput, String dateFromString, String dateToString) {
         Set<Long> channelsIDs = parseUserChoice(userChoiceInput);
-        Long dateFromUnix = NumbersParserUtil.parseUnixDateStartOfDay(dateFromString);
-        Long dateToUnix = NumbersParserUtil.parseUnixDateEndOfDay(dateToString);
+        Long dateFromUnix = ParserUtil.parseUnixDateStartOfDay(dateFromString);
+        Long dateToUnix = ParserUtil.parseUnixDateEndOfDay(dateToString);
         parserService.loadChannelsHistory(channelsIDs, dateFromUnix, dateToUnix);
+        createPreset(userChoiceInput, dateFromString, dateToString);
     }
 
     private Set<Long> parseUserChoice(String input) {
         Set<Long> result = new TreeSet<>();
         Stream.of(input.split(","))
-                .map(NumbersParserUtil::parseLongOrGetZero)
+                .map(ParserUtil::parseLongOrGetZero)
                 .forEach(n -> {
                     if (n < 0) {
                         result.add(n);
@@ -106,7 +113,7 @@ public class ServiceManager implements ParameterRequester, InteractionStarter {
     }
 
     public void setMessagesToDownload(String value) {
-        parserService.setMessagesToDownload(NumbersParserUtil.parseIntegerOrGetZero(value));
+        parserService.setMessagesToDownload(ParserUtil.parseIntegerOrGetZero(value));
     }
 
     public void write(String value) {
@@ -199,5 +206,74 @@ public class ServiceManager implements ParameterRequester, InteractionStarter {
 
     public boolean noSuitableNotes() {
         return storage.noSuitableNotes();
+    }
+
+    private void createPreset(String source, String dateFromString, String dateToString) {
+        String name = "Последний запрос";
+        LocalDate start = ParserUtil.parseStringToLocalDateOrGetNull(dateFromString);
+        LocalDate end = ParserUtil.parseStringToLocalDateOrGetNull(dateToString);
+        presetService.createPreset(name, source, start, end);
+    }
+
+    public void usePresetByName(String name) {
+        Preset preset = presetService.getPresetByName(name.trim());
+        if (preset == null) {
+            Notifier.getInstance().addNotification("Нет такого запроса");
+            return;
+        }
+        load(preset.getSource(), calculateDate(preset.getStart()), calculateDate(preset.getEnd()));
+    }
+
+    public void renamePresetByName(String oldName, String newName) {
+        Preset presetWithOldName = presetService.getPresetByName(oldName.trim());
+        if (presetWithOldName == null) {
+            Notifier.getInstance().addNotification("Нет такого запроса");
+            return;
+        }
+        presetService.getAllPresets().put(
+                newName,
+                new Preset(
+                        newName,
+                        presetWithOldName.getSource(),
+                        presetWithOldName.getStart(),
+                        presetWithOldName.getEnd()));
+        presetService.removePresetByName(oldName);
+        Notifier.getInstance().addNotification("Новое название сохранено");
+    }
+
+    public List<PresetDTO> getPresets() {
+        List<PresetDTO> presetDTOList = new ArrayList<>();
+        for (Preset preset : presetService.getAllPresets().values()) {
+            String name = preset.getName();
+            Set<String> folders = extractFoldersNames(preset.getSource());
+            Set<String> channels = extractChannelsNames(preset.getSource());
+            String start = calculateDate(preset.getStart());
+            String end = calculateDate(preset.getEnd());
+            presetDTOList.add(new PresetDTO(name, folders, channels, start, end));
+        }
+        return presetDTOList;
+    }
+
+    private Set<String> extractFoldersNames(String source) {
+        return Stream.of(source.split(","))
+                .map(ParserUtil::parseLongOrGetZero)
+                .filter(n -> n > 0)
+                .map(Long::intValue)
+                .map(getFoldersIDsAndNames()::get)
+                .collect(Collectors.toSet());
+    }
+
+    private Set<String> extractChannelsNames(String source) {
+        return Stream.of(source.split(","))
+                .map(ParserUtil::parseLongOrGetZero)
+                .filter(n -> n < 0)
+                .map(getChannelsIDsAndNames()::get)
+                .collect(Collectors.toSet());
+    }
+
+    private String calculateDate(Integer dateDiff) {
+        if (dateDiff == null) return "";
+        LocalDate now = LocalDate.now();
+        return now.minusDays(dateDiff).format(DateTimeFormatter.ofPattern("dd.MM.yyyy"));
     }
 }
