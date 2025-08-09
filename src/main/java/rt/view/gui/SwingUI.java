@@ -1,27 +1,27 @@
 package rt.view.gui;
 
-import rt.infrastructure.notifier.Notifier;
-import rt.service_manager.ServiceManager;
+import rt.model.preset.PresetDTO;
 import rt.view.View;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 import java.util.Map;
 
 public class SwingUI extends View {
 
     private final AuthWindow authWindow;
-    private final MainWindow mainWindow;
+    private MainWindow mainWindow;
     private final DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss - ");
 
     public SwingUI() {
         authWindow = new AuthWindow();
-        mainWindow = new MainWindow(this);
     }
 
     @Override
     public void startInteractions() {
-        mainWindow.setVisible(true);
+        mainWindow = new MainWindow(this);
+        showPresets();
         authWindow.dispose();
     }
 
@@ -31,10 +31,6 @@ public class SwingUI extends View {
 
     Map<Long, String> getChannelsIDsAndNames() {
         return serviceManager.getChannelsIDsAndNames();
-    }
-
-    void createLoadingWindow() {
-        new LoadingWindow(this);
     }
 
     void createSearchWindow() {
@@ -47,12 +43,27 @@ public class SwingUI extends View {
 
     @Override
     public void print(String text) {
-        mainWindow.getTextArea().append(LocalDateTime.now().format(dtf) + text + System.lineSeparator().repeat(2));
+        if (text.equals("Загрузка и анализ сообщений закончены")) {
+            mainWindow.showMessageDialog(text + ". Теперь доступны функции поиска и записи сообщений.");
+        } else if (text.contains("Всего отобрано сообщений: ")) {
+            mainWindow.showMessageDialog(text);
+            mainWindow.print(LocalDateTime.now().format(dtf) + text + System.lineSeparator().repeat(2));
+        } else {
+            mainWindow.print(LocalDateTime.now().format(dtf) + text + System.lineSeparator().repeat(2));
+        }
+    }
+
+    public void loadAnalyze(String source, String dateFromString, String dateToString) {
+        serviceManager.loadAnalyze(source, dateFromString, dateToString);
     }
 
     @Override
     public void showPresets() {
+        mainWindow.setPresets(serviceManager.getPresets());
+    }
 
+    public List<PresetDTO> getUpdatedPresets() {
+        return serviceManager.getPresets();
     }
 
     @Override

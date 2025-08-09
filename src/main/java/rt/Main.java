@@ -8,9 +8,7 @@ import rt.view.gui.SwingUI;
 public class Main {
 
     public static void main(String[] args) {
-        View view = new SwingUI();
-        ServiceManager serviceManager = new ServiceManager(view);
-        view.setServiceManager(serviceManager);
+        ServiceManager serviceManager = new ServiceManager();
         serviceManager.init();
     }
 }

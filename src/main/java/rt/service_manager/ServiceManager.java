@@ -12,6 +12,7 @@ import rt.model.preset.PresetDTO;
 import rt.model.service.*;
 import rt.nlp.NLPService;
 import rt.view.View;
+import rt.view.gui.SwingUI;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -29,11 +30,12 @@ public class ServiceManager implements ParameterRequester, InteractionStarter {
     private final NoteStorageService storage;
     private final FileRecorderService recorderService;
     private final PresetService presetService;
-    private final ExecutorService executor = Executors.newFixedThreadPool(2);
+    private final ExecutorService executor = Executors.newFixedThreadPool(3);
     private final SimpleTelegramClientFactory clientFactory = new SimpleTelegramClientFactory();
 
-    public ServiceManager(View view) {
-        this.view = view;
+    public ServiceManager() {
+        this.view = new SwingUI();
+        view.setServiceManager(this);
         this.storage = new NoteStorage();
         this.recorderService = new FileRecorder(storage);
         this.presetService = new Presetter();
@@ -49,7 +51,7 @@ public class ServiceManager implements ParameterRequester, InteractionStarter {
                     try {
                         parserService = new TgParser(clientFactory, storage, this, this);
                         view.startNotificationListener();
-                        view.print("Готов к работе");
+                        Notifier.getInstance().addNotification("Готов к работе");
                         parserService.waitForExit();
                         Thread.sleep(100); // ожидание завершения соединения с TDLib
                     } catch (Exception e) {
@@ -81,7 +83,31 @@ public class ServiceManager implements ParameterRequester, InteractionStarter {
         Set<Long> channelsIDs = parseUserChoice(userChoiceInput);
         Long dateFromUnix = ParserUtil.parseUnixDateStartOfDay(dateFromString);
         Long dateToUnix = ParserUtil.parseUnixDateEndOfDay(dateToString);
-        parserService.loadChannelsHistory(channelsIDs, dateFromUnix, dateToUnix);
+        executor.execute(() -> parserService.loadChannelsHistory(channelsIDs, dateFromUnix, dateToUnix));
+        createPreset(userChoiceInput, dateFromString, dateToString);
+    }
+
+    public void loadAnalyze(String userChoiceInput, String dateFromString, String dateToString) {
+        Set<Long> channelsIDs = parseUserChoice(userChoiceInput);
+        Long dateFromUnix = ParserUtil.parseUnixDateStartOfDay(dateFromString);
+        Long dateToUnix = ParserUtil.parseUnixDateEndOfDay(dateToString);
+        executor.execute(() -> {
+            parserService.loadChannelsHistory(channelsIDs, dateFromUnix, dateToUnix);
+            analyzerService.classify();
+            Notifier.getInstance().addNotification("Загрузка и анализ сообщений закончены");
+        });
+        createPreset(userChoiceInput, dateFromString, dateToString);
+    }
+
+    public void loadAnalyzeWrite(String userChoiceInput, String dateFromString, String dateToString) {
+        Set<Long> channelsIDs = parseUserChoice(userChoiceInput);
+        Long dateFromUnix = ParserUtil.parseUnixDateStartOfDay(dateFromString);
+        Long dateToUnix = ParserUtil.parseUnixDateEndOfDay(dateToString);
+        executor.execute(() -> {
+            parserService.loadChannelsHistory(channelsIDs, dateFromUnix, dateToUnix);
+            analyzerService.classify();
+            write("");
+        });
         createPreset(userChoiceInput, dateFromString, dateToString);
     }
 

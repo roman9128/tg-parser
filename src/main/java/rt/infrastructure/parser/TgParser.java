@@ -91,7 +91,7 @@ public class TgParser implements ParserService {
 
     private void onUpdateFolder(TdApi.UpdateChatFolders updateChatFolders) {
         for (TdApi.ChatFolderInfo folder : updateChatFolders.chatFolders) {
-            foldersInfo.put(folder.id, folder.title);
+            foldersInfo.put(folder.id, folder.title.replaceAll("[^\\p{L}\\p{N} ]", ""));
         }
     }
 
@@ -151,7 +151,7 @@ public class TgParser implements ParserService {
     public Map<Long, String> getChannelsIDsAndNames() {
         return supergroups.keySet().stream().collect(Collectors.toMap(
                 key -> key,
-                key -> chats.get(key).title));
+                key -> chats.get(key).title.replaceAll("[^\\p{L}\\p{N} ]", "")));
     }
 
     @Override

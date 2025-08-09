@@ -25,13 +25,13 @@ public abstract class View {
 
     public void startNotificationListener() {
         executor.execute(() -> {
-            while (!Thread.currentThread().isInterrupted()) {
-                try {
+            try {
+                Thread.sleep(200);
+                while (!Thread.interrupted()) {
                     print(Notifier.getInstance().getNotification());
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    break;
                 }
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
             }
         });
     }

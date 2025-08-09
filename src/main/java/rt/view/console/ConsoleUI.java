@@ -5,10 +5,6 @@ import rt.infrastructure.notifier.Notifier;
 import rt.model.preset.PresetDTO;
 import rt.view.View;
 
-import java.time.format.DateTimeFormatter;
-import java.util.List;
-import java.util.stream.Collectors;
-
 public class ConsoleUI extends View {
 
     @Override
