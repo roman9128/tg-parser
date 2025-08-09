@@ -42,6 +42,7 @@ class ElementsBuilder {
         JButton button = new JButton(title);
         button.setFont(Fonts.S);
         button.setPreferredSize(new Dimension(30, 30));
+        button.setMaximumSize(new Dimension(30, 30));
         button.setBorder(BorderFactory.createEmptyBorder());
         button.setMargin(new Insets(0, 0, 0, 0));
         button.setFocusPainted(false);
@@ -99,12 +100,6 @@ class ElementsBuilder {
     static JLabel createLabel(String title) {
         JLabel label = new JLabel(title);
         label.setFont(Fonts.F12B);
-        return label;
-    }
-
-    static JLabel createSmallLabel(String title){
-        JLabel label = new JLabel(title);
-        label.setFont(Fonts.F12);
         return label;
     }
 

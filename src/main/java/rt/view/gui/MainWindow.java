@@ -71,7 +71,6 @@ class MainWindow extends JFrame {
 
             for (PresetDTO preset : updatedPresets) {
                 listPanel.add(createPresetListItem(preset));
-                listPanel.add(Box.createVerticalStrut(5));
             }
 
             listPanel.revalidate();
@@ -92,13 +91,6 @@ class MainWindow extends JFrame {
         listPanel = new JPanel();
         listPanel.setLayout(new BoxLayout(listPanel, BoxLayout.Y_AXIS));
         listPanel.setBackground(Color.WHITE);
-
-        if (presets != null) {
-            for (PresetDTO preset : presets) {
-                listPanel.add(createPresetListItem(preset));
-                listPanel.add(Box.createVerticalStrut(10));
-            }
-        }
 
         JScrollPane scrollPaneList = new JScrollPane(listPanel);
         scrollPaneList.setBorder(BorderFactory.createCompoundBorder(
@@ -379,37 +371,41 @@ class MainWindow extends JFrame {
     }
 
     private JPanel createPresetListItem(PresetDTO preset) {
-        JPanel item = new JPanel();
-        item.setLayout(new BoxLayout(item, BoxLayout.X_AXIS));
+
+        JPanel item = new JPanel(new BorderLayout(5, 0));
         item.setBackground(Color.WHITE);
-        item.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
-        item.setMaximumSize(new Dimension(Integer.MAX_VALUE, 60));
+        item.setBorder(BorderFactory.createEmptyBorder(5, 0, 5, 5));
+        int height = item.getFontMetrics(Fonts.F12B).getHeight() * 3 + 10;
+        item.setMaximumSize(new Dimension(Integer.MAX_VALUE, height));
 
-        JLabel name = new JLabel(truncateText(preset.name(), 20));
-        name.setFont(Fonts.F12B);
-        name.setPreferredSize(new Dimension(120, 20));
-        item.add(name);
+        JTextArea nameArea = new JTextArea(truncateText(preset.name(), 20));
+        nameArea.setFont(Fonts.F12B);
+        nameArea.setEditable(false);
+        nameArea.setLineWrap(true);
+        nameArea.setWrapStyleWord(true);
+        nameArea.setBackground(Color.WHITE);
+        nameArea.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 5));
+        nameArea.setMaximumSize(new Dimension(120, 30));
 
-        item.add(Box.createHorizontalStrut(5));
-
-        JPanel data = new JPanel();
-        data.setLayout(new BoxLayout(data, BoxLayout.Y_AXIS));
-        data.setBackground(Color.WHITE);
-        String date = preset.end().isBlank()
-                ? preset.start()
-                : preset.start() + " - " + preset.end();
-
-        data.add(ElementsBuilder.createSmallLabel(date));
-        data.add(ElementsBuilder.createSmallLabel(truncateText("Папки: " + String.join(", ", preset.folders()), 50)));
-        data.add(ElementsBuilder.createSmallLabel(truncateText("Каналы: " + String.join(", ", preset.channels()), 50)));
-        item.add(data);
-
-        item.add(Box.createHorizontalGlue());
+        JTextArea dataArea = new JTextArea(
+                (preset.end().isBlank()
+                        ? preset.start()
+                        : preset.start() + " - " + preset.end()) + System.lineSeparator() +
+                        truncateText("Папки: " + String.join(", ", preset.folders()), 50) + System.lineSeparator() +
+                        truncateText("Каналы: " + String.join(", ", preset.channels()), 50)
+        );
+        dataArea.setFont(Fonts.F12);
+        dataArea.setEditable(false);
+        dataArea.setBackground(Color.WHITE);
+        dataArea.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 5));
+        dataArea.setMaximumSize(new Dimension(200, 30));
+        dataArea.setMargin(new Insets(0, 0, 0, 0));
 
         JPanel buttonPanel = new JPanel(new BorderLayout());
         buttonPanel.setBackground(Color.WHITE);
+        buttonPanel.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 0));
 
-        JPanel buttons = new JPanel(new GridLayout(1, 3, 5, 0));
+        JPanel buttons = new JPanel(new GridLayout(1, 3, 2, 0));
         buttons.setBackground(Color.WHITE);
 
         JButton selectBtn = ElementsBuilder.createItemListButton("✓");
@@ -424,8 +420,10 @@ class MainWindow extends JFrame {
         buttons.add(renameBtn);
         buttons.add(deleteBtn);
 
-        buttonPanel.add(buttons, BorderLayout.EAST);
+        buttonPanel.add(buttons, BorderLayout.NORTH);
 
+        item.add(nameArea, BorderLayout.WEST);
+        item.add(dataArea, BorderLayout.CENTER);
         item.add(buttonPanel, BorderLayout.EAST);
 
         return item;
