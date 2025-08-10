@@ -59,20 +59,15 @@ class MainWindow extends JFrame {
         });
     }
 
-    public void setPresets(List<PresetDTO> presets) {
-        this.presets = presets;
-        updatePresetsList(presets);
-    }
-
-    public void updatePresetsList(List<PresetDTO> updatedPresets) {
+    public void updatePresetsList() {
         SwingUtilities.invokeLater(() -> {
-            this.presets = updatedPresets;
+            this.presets = swingUI.getUpdatedPresets();
             listPanel.removeAll();
 
-            for (PresetDTO preset : updatedPresets) {
+            for (PresetDTO preset : presets) {
                 listPanel.add(createPresetListItem(preset));
+                listPanel.add(Box.createVerticalStrut(5));
             }
-
             listPanel.revalidate();
             listPanel.repaint();
         });
@@ -207,15 +202,15 @@ class MainWindow extends JFrame {
         listsPanel.add(channelsScroll);
         rightColumn.add(listsPanel);
 
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
         buttonPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
         buttonPanel.setBackground(Color.WHITE);
 
         JButton loadButton = ElementsBuilder.createRegularButton("Загрузить");
-        JButton findButton = ElementsBuilder.createRegularButton("Найти");
-        JButton writeButton = ElementsBuilder.createRegularButton("Записать");
-        JButton writeXButton = ElementsBuilder.createRegularButton("Записать избранное");
         JButton clearButton = ElementsBuilder.createRegularButton("Очистить");
+        JButton findButton = ElementsBuilder.createRegularButton("Найти");
+        JButton writeButton = ElementsBuilder.createRegularWideButton("Записать все");
+        JButton writeXButton = ElementsBuilder.createRegularWideButton("Записать избранное");
 
         loadButton.addActionListener(e -> {
             List<String> selectedFolders = new ArrayList<>();
@@ -253,7 +248,7 @@ class MainWindow extends JFrame {
                 }
             }
             swingUI.loadAnalyze(sources, dateFromString, dateToString);
-            updatePresetsList(swingUI.getUpdatedPresets());
+            updatePresetsList();
         });
         findButton.addActionListener(e -> findButtonPressed());
         writeButton.addActionListener(e -> writeButtonPressed());
@@ -261,12 +256,12 @@ class MainWindow extends JFrame {
         clearButton.addActionListener(e -> clearButtonPressed());
 
         buttonPanel.add(loadButton);
+        buttonPanel.add(clearButton);
         buttonPanel.add(findButton);
         buttonPanel.add(writeButton);
         buttonPanel.add(writeXButton);
-        buttonPanel.add(clearButton);
 
-        rightColumn.add(Box.createVerticalStrut(10));
+        rightColumn.add(Box.createVerticalStrut(5));
         rightColumn.add(buttonPanel);
         rightColumn.add(Box.createVerticalGlue());
 
@@ -380,20 +375,25 @@ class MainWindow extends JFrame {
 
         JTextArea nameArea = new JTextArea(truncateText(preset.name(), 20));
         nameArea.setFont(Fonts.F12B);
-        nameArea.setEditable(false);
+        nameArea.setEditable(true);
         nameArea.setLineWrap(true);
         nameArea.setWrapStyleWord(true);
         nameArea.setBackground(Color.WHITE);
         nameArea.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 5));
         nameArea.setMaximumSize(new Dimension(120, 30));
 
-        JTextArea dataArea = new JTextArea(
-                (preset.end().isBlank()
-                        ? preset.start()
-                        : preset.start() + " - " + preset.end()) + System.lineSeparator() +
-                        truncateText("Папки: " + String.join(", ", preset.folders()), 50) + System.lineSeparator() +
-                        truncateText("Каналы: " + String.join(", ", preset.channels()), 50)
-        );
+        String date
+                = (preset.start().isBlank()
+                ? "Дата не указана"
+                : (preset.end().isBlank()
+                ? preset.start()
+                : preset.start() + " - " + preset.end())) + System.lineSeparator();
+        String source
+                = (!preset.folders().isEmpty() ? truncateText("Папки: " + String.join(", ", preset.folders()), 50) + System.lineSeparator() : "")
+                + (!preset.channels().isEmpty() ? truncateText("Каналы: " + String.join(", ", preset.channels()), 50) : "")
+                + (preset.folders().isEmpty() && preset.channels().isEmpty() ? "Все каналы" : "");
+
+        JTextArea dataArea = new JTextArea(date + source);
         dataArea.setFont(Fonts.F12);
         dataArea.setEditable(false);
         dataArea.setBackground(Color.WHITE);
@@ -412,9 +412,16 @@ class MainWindow extends JFrame {
         JButton renameBtn = ElementsBuilder.createItemListButton("↻");
         JButton deleteBtn = ElementsBuilder.createItemListButton("✕");
 
-//        selectBtn.addActionListener(e -> swingUI.loadPreset(preset.getId()));
-//        renameBtn.addActionListener(e -> renamePreset(preset));
-//        deleteBtn.addActionListener(e -> deletePreset(preset));
+        selectBtn.addActionListener(e -> swingUI.usePreset(preset.name()));
+        renameBtn.addActionListener(e -> {
+            if (nameArea.getText().equals(preset.name())) return;
+            swingUI.renamePreset(preset.name(), nameArea.getText());
+            updatePresetsList();
+        });
+        deleteBtn.addActionListener(e -> {
+            swingUI.removePresetByName(preset.name());
+            updatePresetsList();
+        });
 
         buttons.add(selectBtn);
         buttons.add(renameBtn);

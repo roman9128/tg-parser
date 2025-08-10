@@ -57,12 +57,16 @@ public class ConsoleUI extends View {
                     case "rename" -> {
                         invokeRenamePresetMethod(args[1] + " " + args[2] + " " + args[3]);
                     }
+                    case "remove" -> {
+                        removePresetByName(args[1]);
+                    }
                     default -> {
                         System.out.println("неизвестная команда");
                     }
                 }
             }
-        } catch (Exception e) {
+        } catch (
+                Exception e) {
             System.err.println("Исключение в консольном потоке: " + e.getMessage());
         }
     }
@@ -137,6 +141,7 @@ public class ConsoleUI extends View {
                         + "* request - посмотреть последний запрос" + System.lineSeparator()
                         + "* use X - использовать запрос с указанным именем (вместо Х ввести имя запроса)" + System.lineSeparator()
                         + "* rename X >> Y - переименовать запрос с указанным именем (вместо Х ввести старое имя, вместо Y - новое имя запроса)" + System.lineSeparator()
+                        + "* remove X - удалить запрос с указанным именем (вместо Х ввести имя удаляемого запроса)" + System.lineSeparator()
                         + "* * * * * * * * * * * * * *" + System.lineSeparator()
                         + "* stop - выход (авторизация сохранена)" + System.lineSeparator()
                         + "* * * * * * * * * * * * * *" + System.lineSeparator()

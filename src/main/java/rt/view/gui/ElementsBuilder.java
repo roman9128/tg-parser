@@ -3,6 +3,7 @@ package rt.view.gui;
 import org.jdesktop.swingx.JXDatePicker;
 
 import javax.swing.*;
+import javax.swing.border.TitledBorder;
 import javax.swing.plaf.basic.BasicScrollBarUI;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
@@ -12,7 +13,34 @@ import java.util.Date;
 class ElementsBuilder {
 
     static JButton createRegularButton(String text) {
-        Dimension buttonSize = new Dimension(100, 25);
+        Dimension buttonSize = new Dimension(110, 30);
+
+        JButton button = new JButton(text);
+        button.setFont(Fonts.F12);
+        button.setFocusPainted(false);
+        button.setBorderPainted(false);
+        button.setContentAreaFilled(false);
+        button.setOpaque(true);
+        button.setPreferredSize(buttonSize);
+        button.setMaximumSize(buttonSize);
+        button.setBackground(Color.WHITE);
+        button.setForeground(Color.BLACK);
+        button.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                button.setBackground(Colors.LIGHT_GRAY);
+            }
+
+            @Override
+            public void mouseExited(MouseEvent e) {
+                button.setBackground(Color.WHITE);
+            }
+        });
+        return button;
+    }
+
+    static JButton createRegularWideButton(String text) {
+        Dimension buttonSize = new Dimension(160, 30);
 
         JButton button = new JButton(text);
         button.setFont(Fonts.F12);
@@ -85,14 +113,17 @@ class ElementsBuilder {
         JPanel column = new JPanel(new BorderLayout());
         column.setLayout(new BoxLayout(column, BoxLayout.Y_AXIS));
         column.setBackground(Color.WHITE);
-        column.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-
-        JLabel leftTitle = new JLabel(title);
-        leftTitle.setAlignmentX(Component.LEFT_ALIGNMENT);
-        leftTitle.setFont(Fonts.F16BI);
-        leftTitle.setForeground(Color.BLACK);
-        leftTitle.setBorder(BorderFactory.createEmptyBorder(0, 0, 10, 0));
-        column.add(leftTitle, BorderLayout.NORTH);
+        column.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createTitledBorder(
+                        BorderFactory.createEmptyBorder(),
+                        title,
+                        TitledBorder.LEFT,
+                        TitledBorder.TOP,
+                        Fonts.F16BI,
+                        Color.BLACK
+                ),
+                BorderFactory.createEmptyBorder(10, 10, 10, 10)
+        ));
 
         return column;
     }

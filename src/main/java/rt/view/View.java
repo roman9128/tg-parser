@@ -83,4 +83,8 @@ public abstract class View {
     public void renamePreset(String oldName, String newName) {
         serviceManager.renamePresetByName(oldName, newName);
     }
+
+    public void removePresetByName(String name) {
+        serviceManager.removePresetByName(name);
+    }
 }

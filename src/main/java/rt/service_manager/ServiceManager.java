@@ -93,8 +93,10 @@ public class ServiceManager implements ParameterRequester, InteractionStarter {
         Long dateToUnix = ParserUtil.parseUnixDateEndOfDay(dateToString);
         executor.execute(() -> {
             parserService.loadChannelsHistory(channelsIDs, dateFromUnix, dateToUnix);
-            analyzerService.classify();
-            Notifier.getInstance().addNotification("Загрузка и анализ сообщений закончены");
+            if (!noAnyNotes()) {
+                analyzerService.classify();
+                Notifier.getInstance().addNotification("Загрузка и анализ сообщений закончены");
+            }
         });
         createPreset(userChoiceInput, dateFromString, dateToString);
     }
@@ -105,8 +107,10 @@ public class ServiceManager implements ParameterRequester, InteractionStarter {
         Long dateToUnix = ParserUtil.parseUnixDateEndOfDay(dateToString);
         executor.execute(() -> {
             parserService.loadChannelsHistory(channelsIDs, dateFromUnix, dateToUnix);
-            analyzerService.classify();
-            write("");
+            if (!noAnyNotes()) {
+                analyzerService.classify();
+                write("");
+            }
         });
         createPreset(userChoiceInput, dateFromString, dateToString);
     }
@@ -230,10 +234,6 @@ public class ServiceManager implements ParameterRequester, InteractionStarter {
         return storage.noAnyNotes();
     }
 
-    public boolean noSuitableNotes() {
-        return storage.noSuitableNotes();
-    }
-
     private void createPreset(String source, String dateFromString, String dateToString) {
         String name = "Последний запрос";
         LocalDate start = ParserUtil.parseStringToLocalDateOrGetNull(dateFromString);
@@ -247,7 +247,7 @@ public class ServiceManager implements ParameterRequester, InteractionStarter {
             Notifier.getInstance().addNotification("Нет такого запроса");
             return;
         }
-        load(preset.getSource(), calculateDate(preset.getStart()), calculateDate(preset.getEnd()));
+        loadAnalyzeWrite(preset.getSource(), calculateDate(preset.getStart()), calculateDate(preset.getEnd()));
     }
 
     public void renamePresetByName(String oldName, String newName) {
@@ -265,6 +265,10 @@ public class ServiceManager implements ParameterRequester, InteractionStarter {
                         presetWithOldName.getEnd()));
         presetService.removePresetByName(oldName);
         Notifier.getInstance().addNotification("Новое название сохранено");
+    }
+
+    public void removePresetByName(String name) {
+        presetService.removePresetByName(name);
     }
 
     public List<PresetDTO> getPresets() {

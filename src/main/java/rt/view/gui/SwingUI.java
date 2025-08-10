@@ -43,8 +43,15 @@ public class SwingUI extends View {
 
     @Override
     public void print(String text) {
-        if (text.equals("Загрузка и анализ сообщений закончены")) {
-            mainWindow.showMessageDialog(text + ". Теперь доступны функции поиска и записи сообщений.");
+        if (mainWindow == null) {
+            try {
+                Thread.sleep(200);
+            } catch (InterruptedException e) {
+                print(e.getMessage());
+            }
+            print(text);
+        } else if (text.equals("Загрузка и анализ сообщений закончены")) {
+            mainWindow.showMessageDialog(text + System.lineSeparator() + "Теперь доступны функции поиска и записи сообщений");
         } else if (text.contains("Всего отобрано сообщений: ")) {
             mainWindow.showMessageDialog(text);
             mainWindow.print(LocalDateTime.now().format(dtf) + text + System.lineSeparator().repeat(2));
@@ -59,7 +66,7 @@ public class SwingUI extends View {
 
     @Override
     public void showPresets() {
-        mainWindow.setPresets(serviceManager.getPresets());
+        mainWindow.updatePresetsList();
     }
 
     public List<PresetDTO> getUpdatedPresets() {
