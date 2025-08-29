@@ -135,6 +135,7 @@ class ElementsBuilder {
     }
 
     static void customizeScrollBar(JScrollPane scrollPane) {
+        scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
         JScrollBar verticalScrollBar = scrollPane.getVerticalScrollBar();
         verticalScrollBar.setOpaque(false);
         verticalScrollBar.setBackground(new Color(0, 0, 0, 0));

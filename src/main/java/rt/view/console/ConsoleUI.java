@@ -186,7 +186,17 @@ public class ConsoleUI extends View {
     }
 
     @Override
-    public String askParameter(String who, String question) {
-        return ConsoleInput.askParameter(who, question);
+    public String ask2FAPassword() {
+        return "";
+    }
+
+    @Override
+    public void showErrorMessage(String errorText) {
+        print(errorText);
+    }
+
+    @Override
+    public void showQrCode(String link) {
+
     }
 }

@@ -1,20 +1,18 @@
 package rt.view.gui;
 
+import rt.infrastructure.parser.SessionEraser;
+
 import javax.swing.*;
 import java.awt.*;
-import java.io.File;
 
-class AuthWindow extends JFrame {
+class AuthPasswordWindow extends JFrame {
 
-    String askParameter(String who, String question){
-        String[] lines = question.split(System.lineSeparator());
+    String ask2FAPassword() {
         JPanel authPanel = new JPanel(new BorderLayout(10, 10));
         authPanel.setBorder(BorderFactory.createEmptyBorder(10, 15, 10, 15));
-        JPanel textPanel = new JPanel(new GridLayout(lines.length, 1, 0, 5));
+        JPanel textPanel = new JPanel(new GridLayout(1, 1, 0, 5));
         textPanel.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 10));
-        for (String line : lines) {
-            textPanel.add(new JLabel(line));
-        }
+        textPanel.add(new JLabel("Введите облачный пароль"));
         JPanel inputPanel = new JPanel(new BorderLayout());
         JTextField field = new JTextField(15);
         field.setMargin(new Insets(5, 5, 5, 5));
@@ -26,7 +24,7 @@ class AuthWindow extends JFrame {
             int result = JOptionPane.showConfirmDialog(
                     null,
                     authPanel,
-                    who,
+                    "Авторизация",
                     JOptionPane.OK_CANCEL_OPTION,
                     JOptionPane.PLAIN_MESSAGE
             );
@@ -42,24 +40,9 @@ class AuthWindow extends JFrame {
                 }
                 return input;
             } else {
-                File folder = new File("./session");
-                deleteSession(folder);
+                SessionEraser.deleteSession();
                 System.exit(0);
             }
         }
-    }
-
-    private void deleteSession(File folder) {
-        File[] files = folder.listFiles();
-        if (files != null) {
-            for (File f : files) {
-                if (f.isDirectory()) {
-                    deleteSession(f);
-                } else {
-                    f.delete();
-                }
-            }
-        }
-        folder.delete();
     }
 }

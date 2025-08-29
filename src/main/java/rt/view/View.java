@@ -17,7 +17,11 @@ public abstract class View {
 
     public abstract void showPresets();
 
-    public abstract String askParameter(String who, String question);
+    public abstract String ask2FAPassword();
+
+    public abstract void showErrorMessage(String errorText);
+
+    public abstract void showQrCode(String link);
 
     public void setServiceManager(ServiceManager serviceManager) {
         this.serviceManager = serviceManager;

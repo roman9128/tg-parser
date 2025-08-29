@@ -29,7 +29,10 @@ public class Note {
     }
 
     public void setKeyWords(Map<String, Double> keyWords) {
-        this.keyWords.putAll(keyWords);
+        this.keyWords.putAll(keyWords.entrySet()
+                .stream()
+                .filter(e -> e.getValue() > 55)
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));
     }
 
     private LocalDateTime convertDateTime(Integer msgTimeUNIX) {
@@ -75,7 +78,15 @@ public class Note {
                 .sorted(Map.Entry.comparingByValue(Comparator.reverseOrder()))
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (e1, e2) -> e1, LinkedHashMap::new));
         return sortedMap.entrySet().stream()
-                .map(entry -> entry.getKey() + " (" + String.format("%.2f", entry.getValue()) + "%)")
+                .map(e -> {
+                    String res;
+                    if (e.getValue() < 70) {
+                        res = e.getKey() + " (возможно)";
+                    } else {
+                        res = e.getKey();
+                    }
+                    return res;
+                })
                 .collect(Collectors.joining(", "));
     }
 

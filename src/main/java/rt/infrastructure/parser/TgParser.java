@@ -9,10 +9,11 @@ import rt.infrastructure.config.ParsingPropertiesChanger;
 import rt.infrastructure.config.ParsingPropertiesHandler;
 import rt.infrastructure.notifier.Notifier;
 import rt.model.note.Note;
-import rt.service_manager.InteractionStarter;
 import rt.model.service.NoteStorageService;
-import rt.service_manager.ParameterRequester;
 import rt.model.service.ParserService;
+import rt.service_manager.ErrorInformer;
+import rt.service_manager.InteractionStarter;
+import rt.service_manager.ParameterRequester;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -25,7 +26,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
-public class TgParser implements ParserService {
+public final class TgParser implements ParserService {
 
     private final SimpleTelegramClient client;
     private final ChatHistoryLoader chatHistoryLoader = new ChatHistoryLoader();
@@ -37,43 +38,58 @@ public class TgParser implements ParserService {
     private final InteractionStarter starter;
     private final ParsingPropertiesChanger parsingPropertiesChanger = new ParsingPropertiesChanger();
     private final ExecutorService blockingExecutor = Executors.newSingleThreadExecutor();
+    private final ParameterRequester parameterRequester;
+    private final ErrorHandler errorHandler;
 
     public TgParser(SimpleTelegramClientFactory clientFactory,
                     NoteStorageService storage,
                     ParameterRequester parameterRequester,
-                    InteractionStarter starter) {
+                    InteractionStarter starter,
+                    ErrorInformer errorInformer) {
 
         this.storage = storage;
         this.starter = starter;
-//        Init.init();
+        this.parameterRequester = parameterRequester;
+        this.errorHandler = new ErrorHandler(errorInformer);
         Log.setLogMessageHandler(1, new Slf4JLogMessageHandler());
         APIToken apiToken = new APIToken(AppPropertiesHandler.getApiID(), AppPropertiesHandler.getApiHash());
         TDLibSettings settings = TDLibSettings.create(apiToken);
         Path sessionPath = Paths.get("session");
         settings.setDatabaseDirectoryPath(sessionPath.resolve("data"));
         SimpleTelegramClientBuilder clientBuilder = clientFactory.builder(settings);
-        PhoneAuthentication authData = new PhoneAuthentication(parameterRequester);
-        SimpleTelegramClient client = clientBuilder.build(authData);
+        SimpleTelegramClient client = clientBuilder.build(AuthenticationSupplier.qrCode());
         client.addUpdateHandler(TdApi.UpdateAuthorizationState.class, this::onUpdateAuthorizationState);
         client.addUpdateHandler(TdApi.UpdateNewChat.class, this::onUpdateChat);
         client.addUpdateHandler(TdApi.UpdateSupergroup.class, this::onUpdateSuperGroup);
         client.addUpdateHandler(TdApi.UpdateChatFolders.class, this::onUpdateFolder);
-        client.setClientInteraction(new ClientInteractionImpl(blockingExecutor, authData, parameterRequester));
+        client.setClientInteraction(null);
         this.client = client;
     }
 
     private void onUpdateAuthorizationState(TdApi.UpdateAuthorizationState update) {
         TdApi.AuthorizationState authorizationState = update.authorizationState;
-        if (authorizationState instanceof TdApi.AuthorizationStateReady) {
-            getChats();
-            getChannels();
-            getFoldersInfo();
-            stopBlockingExecutor();
-            starter.startInteractions();
-        } else if (authorizationState instanceof TdApi.AuthorizationStateClosed) {
-            Notifier.getInstance().addNotification("Соединение закрыто");
-        } else if (authorizationState instanceof TdApi.AuthorizationStateLoggingOut) {
-            Notifier.getInstance().addNotification("Не авторизован");
+        switch (authorizationState) {
+            case TdApi.AuthorizationStateWaitOtherDeviceConfirmation deviceConfirmation -> {
+                String link = deviceConfirmation.link;
+                starter.showQrCode(link);
+            }
+            case TdApi.AuthorizationStateWaitPassword waitPassword -> {
+                String password = parameterRequester.ask2FAPassword();
+                client.send(new TdApi.CheckAuthenticationPassword(password), errorHandler);
+            }
+            case TdApi.AuthorizationStateReady ready -> {
+                getChats();
+                getChannels();
+                getFoldersInfo();
+                stopBlockingExecutor();
+                starter.startInteractions();
+            }
+            case TdApi.AuthorizationStateLoggingOut loggingOut -> {
+                Notifier.getInstance().addNotification("Не авторизован");
+                SessionEraser.deleteSession();
+            }
+            default -> {
+            }
         }
     }
 

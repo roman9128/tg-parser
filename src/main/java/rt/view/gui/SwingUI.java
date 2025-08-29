@@ -3,6 +3,7 @@ package rt.view.gui;
 import rt.model.preset.PresetDTO;
 import rt.view.View;
 
+import javax.swing.*;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -10,12 +11,14 @@ import java.util.Map;
 
 public class SwingUI extends View {
 
-    private final AuthWindow authWindow;
+    private final AuthPasswordWindow authWindow;
+    private final AuthQrCodeWindow qrCodeWindow;
     private MainWindow mainWindow;
     private final DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss - ");
 
     public SwingUI() {
-        authWindow = new AuthWindow();
+        authWindow = new AuthPasswordWindow();
+        qrCodeWindow = new AuthQrCodeWindow();
     }
 
     @Override
@@ -74,7 +77,23 @@ public class SwingUI extends View {
     }
 
     @Override
-    public String askParameter(String who, String question) {
-        return authWindow.askParameter(who, question);
+    public String ask2FAPassword() {
+        qrCodeWindow.dispose();
+        return authWindow.ask2FAPassword();
+    }
+
+    @Override
+    public void showErrorMessage(String errorText) {
+        JOptionPane.showMessageDialog(
+                null,
+                errorText,
+                "Ошибка",
+                JOptionPane.ERROR_MESSAGE
+        );
+    }
+
+    @Override
+    public void showQrCode(String link) {
+        qrCodeWindow.showQRCode(link);
     }
 }

@@ -25,6 +25,14 @@ class MainWindow extends JFrame {
     private JPanel listPanel;
     private JTextArea textArea;
     private List<PresetDTO> presets;
+    private Map<String, String> foldersMap;
+    private DefaultListModel<ItemWrapper> foldersModel;
+    private JList<ItemWrapper> foldersList;
+    private Map<String, String> channelsMap;
+    private DefaultListModel<ItemWrapper> channelsModel;
+    private JList<ItemWrapper> channelsList;
+    private JXDatePicker startDatePicker;
+    private JXDatePicker endDatePicker;
     private final SwingUI swingUI;
     private final SimpleDateFormat sdf = new SimpleDateFormat("dd.MM.yyyy");
 
@@ -100,8 +108,8 @@ class MainWindow extends JFrame {
         JPanel rightColumn = ElementsBuilder.createColumn("новый поиск");
 
         JPanel datePanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 5, 5));
-        JXDatePicker startDatePicker = ElementsBuilder.createDatePicker();
-        JXDatePicker endDatePicker = ElementsBuilder.createDatePicker();
+        startDatePicker = ElementsBuilder.createDatePicker();
+        endDatePicker = ElementsBuilder.createDatePicker();
         datePanel.setAlignmentX(Component.LEFT_ALIGNMENT);
         datePanel.setBackground(Color.WHITE);
         datePanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
@@ -114,92 +122,7 @@ class MainWindow extends JFrame {
 
         rightColumn.add(datePanel);
 
-        JPanel listsPanel = new JPanel(new GridLayout(1, 2, 10, 0));
-        listsPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        listsPanel.setBackground(Color.WHITE);
-
-        Map<String, String> foldersMap = swingUI.getFoldersIDsAndNames().entrySet().stream()
-                .collect(Collectors.toMap(
-                        e -> e.getValue(),
-                        e -> String.valueOf(e.getKey())
-                ));
-
-        Map<String, String> channelsMap = swingUI.getChannelsIDsAndNames().entrySet().stream()
-                .collect(Collectors.toMap(
-                        e -> e.getValue().replaceAll("[^\\p{L}\\p{N} ]", ""),
-                        e -> String.valueOf(e.getKey())
-                ));
-
-        DefaultListModel<ItemWrapper> foldersModel = new DefaultListModel<>();
-        foldersMap.keySet().forEach(name -> foldersModel.addElement(new ItemWrapper(name, false)));
-
-        JList<ItemWrapper> foldersList = new JList<>(foldersModel);
-        foldersList.setCellRenderer(new CheckboxListCellRenderer());
-        foldersList.setSelectionModel(new NoSelectionModel());
-        foldersList.setBackground(Color.WHITE);
-        foldersList.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                int index = foldersList.locationToIndex(e.getPoint());
-                if (index >= 0) {
-                    ItemWrapper item = foldersModel.getElementAt(index);
-                    item.setSelected(!item.isSelected());
-                    foldersList.repaint();
-                }
-            }
-        });
-
-        JScrollPane foldersScroll = new JScrollPane(foldersList);
-        foldersScroll.setBackground(Color.WHITE);
-        ElementsBuilder.customizeScrollBar(foldersScroll);
-        foldersScroll.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createTitledBorder(
-                        BorderFactory.createEmptyBorder(5, 5, 5, 5),
-                        "папки",
-                        TitledBorder.CENTER,
-                        TitledBorder.TOP,
-                        Fonts.F12B,
-                        Color.BLACK
-                ),
-                BorderFactory.createMatteBorder(0, 0, 0, 1, Colors.DARK_GRAY)
-        ));
-
-        DefaultListModel<ItemWrapper> channelsModel = new DefaultListModel<>();
-        channelsMap.keySet().forEach(name -> channelsModel.addElement(new ItemWrapper(name, false)));
-
-        JList<ItemWrapper> channelsList = new JList<>(channelsModel);
-        channelsList.setCellRenderer(new CheckboxListCellRenderer());
-        channelsList.setSelectionModel(new NoSelectionModel());
-        channelsList.setBackground(Color.WHITE);
-        channelsList.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                int index = channelsList.locationToIndex(e.getPoint());
-                if (index >= 0) {
-                    ItemWrapper item = channelsModel.getElementAt(index);
-                    item.setSelected(!item.isSelected());
-                    channelsList.repaint();
-                }
-            }
-        });
-
-        JScrollPane channelsScroll = new JScrollPane(channelsList);
-        channelsScroll.setBackground(Color.WHITE);
-        ElementsBuilder.customizeScrollBar(channelsScroll);
-        channelsScroll.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createTitledBorder(
-                        BorderFactory.createEmptyBorder(),
-                        "каналы",
-                        TitledBorder.CENTER,
-                        TitledBorder.TOP,
-                        Fonts.F12B,
-                        Color.BLACK
-                ),
-                BorderFactory.createEmptyBorder(5, 5, 5, 5)
-        ));
-
-        listsPanel.add(foldersScroll);
-        listsPanel.add(channelsScroll);
+        JPanel listsPanel = createListsPanel();
         rightColumn.add(listsPanel);
 
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
@@ -212,44 +135,7 @@ class MainWindow extends JFrame {
         JButton writeButton = ElementsBuilder.createRegularWideButton("Записать все");
         JButton writeXButton = ElementsBuilder.createRegularWideButton("Записать избранное");
 
-        loadButton.addActionListener(e -> {
-            List<String> selectedFolders = new ArrayList<>();
-            for (int i = 0; i < foldersModel.getSize(); i++) {
-                ItemWrapper item = foldersModel.getElementAt(i);
-                if (item.isSelected()) {
-                    String id = foldersMap.get(item.getName());
-                    if (id != null) selectedFolders.add(id);
-                }
-            }
-
-            List<String> selectedChannels = new ArrayList<>();
-            for (int i = 0; i < channelsModel.getSize(); i++) {
-                ItemWrapper item = channelsModel.getElementAt(i);
-                if (item.isSelected()) {
-                    String id = channelsMap.get(item.getName());
-                    if (id != null) selectedChannels.add(id);
-                }
-            }
-
-            String sources;
-            if (selectedFolders.isEmpty() && selectedChannels.isEmpty()) {
-                sources = "all";
-            } else {
-                sources = Stream.concat(selectedFolders.stream(), selectedChannels.stream())
-                        .collect(Collectors.joining(","));
-            }
-
-            String dateFromString = "";
-            String dateToString = "";
-            if (startDatePicker.getDate() != null) {
-                dateFromString = sdf.format(startDatePicker.getDate());
-                if (endDatePicker.getDate() != null) {
-                    dateToString = sdf.format(endDatePicker.getDate());
-                }
-            }
-            swingUI.loadAnalyze(sources, dateFromString, dateToString);
-            updatePresetsList();
-        });
+        loadButton.addActionListener(e -> loadButtonPressed());
         findButton.addActionListener(e -> findButtonPressed());
         writeButton.addActionListener(e -> writeButtonPressed());
         writeXButton.addActionListener(e -> writeXButtonPressed());
@@ -268,28 +154,51 @@ class MainWindow extends JFrame {
         columnsPanel.add(leftColumn);
         columnsPanel.add(rightColumn);
 
-        textArea = new JTextArea();
-        textArea.setEditable(false);
-        textArea.setLineWrap(true);
-        textArea.setWrapStyleWord(true);
-        textArea.setBackground(Color.WHITE);
-        textArea.setForeground(Color.BLACK);
-        textArea.setCaretColor(Color.BLACK);
-        textArea.setFont(Fonts.F10);
-
-        JScrollPane scrollPaneText = new JScrollPane(textArea);
-        scrollPaneText.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createEmptyBorder(5, 10, 5, 10),
-                BorderFactory.createMatteBorder(1, 0, 0, 0, Colors.DARK_GRAY)
-        ));
-        scrollPaneText.setBackground(Color.WHITE);
-        scrollPaneText.setPreferredSize(new Dimension(0, 100));
-        ElementsBuilder.customizeScrollBar(scrollPaneText);
+        JScrollPane scrollPaneText = createFooterTextArea();
 
         mainPanel.add(columnsPanel, BorderLayout.CENTER);
         mainPanel.add(scrollPaneText, BorderLayout.SOUTH);
 
         add(mainPanel);
+    }
+
+    private void loadButtonPressed() {
+        List<String> selectedFolders = new ArrayList<>();
+        for (int i = 0; i < foldersModel.getSize(); i++) {
+            ItemWrapper item = foldersModel.getElementAt(i);
+            if (item.isSelected()) {
+                String id = foldersMap.get(item.getName());
+                if (id != null) selectedFolders.add(id);
+            }
+        }
+
+        List<String> selectedChannels = new ArrayList<>();
+        for (int i = 0; i < channelsModel.getSize(); i++) {
+            ItemWrapper item = channelsModel.getElementAt(i);
+            if (item.isSelected()) {
+                String id = channelsMap.get(item.getName());
+                if (id != null) selectedChannels.add(id);
+            }
+        }
+
+        String sources;
+        if (selectedFolders.isEmpty() && selectedChannels.isEmpty()) {
+            return;
+        } else {
+            sources = Stream.concat(selectedFolders.stream(), selectedChannels.stream())
+                    .collect(Collectors.joining(","));
+        }
+
+        String dateFromString = "";
+        String dateToString = "";
+        if (startDatePicker.getDate() != null) {
+            dateFromString = sdf.format(startDatePicker.getDate());
+            if (endDatePicker.getDate() != null) {
+                dateToString = sdf.format(endDatePicker.getDate());
+            }
+        }
+        swingUI.loadAnalyze(sources, dateFromString, dateToString);
+        updatePresetsList();
     }
 
     private void findButtonPressed() {
@@ -306,6 +215,7 @@ class MainWindow extends JFrame {
 
     private void clearButtonPressed() {
         swingUI.clear();
+        updateListsPanel();
     }
 
     public void print(String text) {
@@ -363,6 +273,142 @@ class MainWindow extends JFrame {
                 "Уведомление",
                 JOptionPane.INFORMATION_MESSAGE
         );
+    }
+
+    private JPanel createListsPanel() {
+        JPanel listsPanel = new JPanel(new GridLayout(1, 2, 10, 0));
+        listsPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        listsPanel.setBackground(Color.WHITE);
+
+        foldersMap = swingUI.getFoldersIDsAndNames().entrySet().stream()
+                .collect(Collectors.toMap(
+                        e -> e.getValue(),
+                        e -> String.valueOf(e.getKey())
+                ));
+
+        channelsMap = swingUI.getChannelsIDsAndNames().entrySet().stream()
+                .collect(Collectors.toMap(
+                        e -> e.getValue(),
+                        e -> String.valueOf(e.getKey())
+                ));
+
+        foldersModel = new DefaultListModel<>();
+        foldersMap.keySet().forEach(name -> foldersModel.addElement(new ItemWrapper(name, false)));
+
+        foldersList = new JList<>(foldersModel);
+        foldersList.setCellRenderer(new CheckboxListCellRenderer());
+        foldersList.setSelectionModel(new NoSelectionModel());
+        foldersList.setBackground(Color.WHITE);
+        foldersList.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                int index = foldersList.locationToIndex(e.getPoint());
+                if (index >= 0) {
+                    ItemWrapper item = foldersModel.getElementAt(index);
+                    item.setSelected(!item.isSelected());
+                    foldersList.repaint();
+                }
+            }
+        });
+
+        JScrollPane foldersScroll = new JScrollPane(foldersList);
+        foldersScroll.setBackground(Color.WHITE);
+        ElementsBuilder.customizeScrollBar(foldersScroll);
+        foldersScroll.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createTitledBorder(
+                        BorderFactory.createEmptyBorder(5, 5, 5, 5),
+                        "папки",
+                        TitledBorder.CENTER,
+                        TitledBorder.TOP,
+                        Fonts.F12B,
+                        Color.BLACK
+                ),
+                BorderFactory.createMatteBorder(0, 0, 0, 1, Colors.DARK_GRAY)
+        ));
+
+        channelsModel = new DefaultListModel<>();
+        channelsMap.keySet().forEach(name -> channelsModel.addElement(new ItemWrapper(name, false)));
+
+        channelsList = new JList<>(channelsModel);
+        channelsList.setCellRenderer(new CheckboxListCellRenderer());
+        channelsList.setSelectionModel(new NoSelectionModel());
+        channelsList.setBackground(Color.WHITE);
+        channelsList.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                int index = channelsList.locationToIndex(e.getPoint());
+                if (index >= 0) {
+                    ItemWrapper item = channelsModel.getElementAt(index);
+                    item.setSelected(!item.isSelected());
+                    channelsList.repaint();
+                }
+            }
+        });
+
+        JScrollPane channelsScroll = new JScrollPane(channelsList);
+        channelsScroll.setBackground(Color.WHITE);
+        ElementsBuilder.customizeScrollBar(channelsScroll);
+        channelsScroll.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createTitledBorder(
+                        BorderFactory.createEmptyBorder(),
+                        "каналы",
+                        TitledBorder.CENTER,
+                        TitledBorder.TOP,
+                        Fonts.F12B,
+                        Color.BLACK
+                ),
+                BorderFactory.createEmptyBorder(5, 5, 5, 5)
+        ));
+
+        listsPanel.add(foldersScroll);
+        listsPanel.add(channelsScroll);
+
+        return listsPanel;
+    }
+
+    private void updateListsPanel() {
+        SwingUtilities.invokeLater(() -> {
+            foldersModel.clear();
+            channelsModel.clear();
+
+            foldersMap = swingUI.getFoldersIDsAndNames().entrySet().stream()
+                    .collect(Collectors.toMap(
+                            e -> e.getValue(),
+                            e -> String.valueOf(e.getKey())
+                    ));
+
+            channelsMap = swingUI.getChannelsIDsAndNames().entrySet().stream()
+                    .collect(Collectors.toMap(
+                            e -> e.getValue(),
+                            e -> String.valueOf(e.getKey())
+                    ));
+
+            foldersMap.keySet().forEach(name -> foldersModel.addElement(new ItemWrapper(name, false)));
+            channelsMap.keySet().forEach(name -> channelsModel.addElement(new ItemWrapper(name, false)));
+
+            foldersList.repaint();
+            channelsList.repaint();
+        });
+    }
+
+    private JScrollPane createFooterTextArea() {
+        textArea = new JTextArea();
+        textArea.setEditable(false);
+        textArea.setLineWrap(true);
+        textArea.setWrapStyleWord(true);
+        textArea.setBackground(Color.WHITE);
+        textArea.setForeground(Color.BLACK);
+        textArea.setCaretColor(Color.BLACK);
+        textArea.setFont(Fonts.F10);
+        JScrollPane scrollPaneText = new JScrollPane(textArea);
+        scrollPaneText.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createEmptyBorder(5, 10, 5, 10),
+                BorderFactory.createMatteBorder(1, 0, 0, 0, Colors.DARK_GRAY)
+        ));
+        scrollPaneText.setBackground(Color.WHITE);
+        scrollPaneText.setPreferredSize(new Dimension(0, 100));
+        ElementsBuilder.customizeScrollBar(scrollPaneText);
+        return scrollPaneText;
     }
 
     private JPanel createPresetListItem(PresetDTO preset) {

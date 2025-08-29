@@ -22,7 +22,7 @@ import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class ServiceManager implements ParameterRequester, InteractionStarter {
+public class ServiceManager implements ParameterRequester, InteractionStarter, ErrorInformer {
 
     private ParserService parserService;
     private AnalyzerService analyzerService;
@@ -49,26 +49,37 @@ public class ServiceManager implements ParameterRequester, InteractionStarter {
     public void init() {
         executor.execute(() -> {
                     try {
-                        parserService = new TgParser(clientFactory, storage, this, this);
-                        view.startNotificationListener();
-                        Notifier.getInstance().addNotification("Готов к работе");
-                        parserService.waitForExit();
-                        Thread.sleep(100); // ожидание завершения соединения с TDLib
+                        startParser();
                     } catch (Exception e) {
                         view.print("Исключение в главном потоке: " + e.getMessage());
                     } finally {
-                        view.print("Завершаю работу...");
-                        view.stopNotificationListener();
-                        clientFactory.close();
-                        executor.shutdown();
+                        closeApp();
                     }
                 }
         );
     }
 
+    private void startParser() throws InterruptedException {
+        parserService = new TgParser(
+                clientFactory,
+                storage,
+                this,
+                this,
+                this);
+        view.startNotificationListener();
+        Notifier.getInstance().addNotification("Готов к работе");
+        parserService.waitForExit();
+        Thread.sleep(100); // ожидание завершения соединения с TDLib
+    }
+
     @Override
     public void startInteractions() {
         executor.execute(view::startInteractions);
+    }
+
+    @Override
+    public void showQrCode(String link) {
+        view.showQrCode(link);
     }
 
     public Map<Integer, String> getFoldersIDsAndNames() {
@@ -138,8 +149,8 @@ public class ServiceManager implements ParameterRequester, InteractionStarter {
     }
 
     @Override
-    public String askParameter(String who, String question) {
-        return view.askParameter(who, question);
+    public String ask2FAPassword() {
+        return view.ask2FAPassword();
     }
 
     public void setMessagesToDownload(String value) {
@@ -257,7 +268,7 @@ public class ServiceManager implements ParameterRequester, InteractionStarter {
             return;
         }
         presetService.getAllPresets().put(
-                newName,
+                newName.replaceAll("~", ""),
                 new Preset(
                         newName,
                         presetWithOldName.getSource(),
@@ -305,5 +316,18 @@ public class ServiceManager implements ParameterRequester, InteractionStarter {
         if (dateDiff == null) return "";
         LocalDate now = LocalDate.now();
         return now.minusDays(dateDiff).format(DateTimeFormatter.ofPattern("dd.MM.yyyy"));
+    }
+
+    @Override
+    public void informAboutError(String errorText) {
+        view.showErrorMessage(errorText);
+    }
+
+    public void closeApp() {
+        view.print("Завершаю работу...");
+        view.stopNotificationListener();
+        clientFactory.close();
+        executor.shutdown();
+        System.exit(0);
     }
 }
