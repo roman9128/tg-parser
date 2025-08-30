@@ -11,7 +11,7 @@ public class Note {
     private final Long messageID;
     private final Long senderID;
     private final String senderName;
-    private final LocalDateTime msgTime;
+    private final Integer msgTimeUNIX;
     private final String text;
     private String msgLink;
     private final Map<String, Double> keyWords = new HashMap<>();
@@ -19,7 +19,7 @@ public class Note {
     public Note(Long messageID, Long senderID, Integer msgTimeUNIX, String senderName, String text) {
         this.messageID = messageID;
         this.senderID = senderID;
-        this.msgTime = convertDateTime(msgTimeUNIX);
+        this.msgTimeUNIX = msgTimeUNIX;
         this.senderName = senderName;
         this.text = text;
     }
@@ -35,14 +35,10 @@ public class Note {
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));
     }
 
-    private LocalDateTime convertDateTime(Integer msgTimeUNIX) {
+    private String convertTimeUNIXtoString(Integer msgTimeUNIX) {
         Instant instant = Instant.ofEpochSecond(msgTimeUNIX);
-        return LocalDateTime.ofInstant(instant, ZoneId.systemDefault());
-    }
-
-    private String getStringDateTime(LocalDateTime dateTime) {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd MMMM yyyy, HH:mm", Locale.getDefault());
-        return dateTime.format(formatter);
+        return LocalDateTime.ofInstant(instant, ZoneId.systemDefault()).format(formatter);
     }
 
     public Long getMessageID() {
@@ -59,6 +55,14 @@ public class Note {
 
     public String getText() {
         return text;
+    }
+
+    public Integer getMsgTimeUNIX() {
+        return msgTimeUNIX;
+    }
+
+    public String getMsgLink() {
+        return msgLink;
     }
 
     public Map<String, Double> getKeyWords() {
@@ -112,7 +116,7 @@ public class Note {
         StringBuilder builder = new StringBuilder();
         builder.append("{")
                 .append(System.lineSeparator())
-                .append("Время: ").append(getStringDateTime(msgTime))
+                .append("Время: ").append(convertTimeUNIXtoString(msgTimeUNIX))
                 .append(System.lineSeparator())
                 .append("Автор: ").append(senderName)
                 .append(System.lineSeparator())

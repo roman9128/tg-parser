@@ -13,7 +13,6 @@ import rt.model.service.NoteStorageService;
 import rt.model.service.ParserService;
 import rt.service_manager.ErrorInformer;
 import rt.service_manager.InteractionStarter;
-import rt.service_manager.ParameterRequester;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -38,20 +37,17 @@ public final class TgParser implements ParserService {
     private final InteractionStarter starter;
     private final ParsingPropertiesChanger parsingPropertiesChanger = new ParsingPropertiesChanger();
     private final ExecutorService blockingExecutor = Executors.newSingleThreadExecutor();
-    private final ParameterRequester parameterRequester;
     private final ErrorHandler errorHandler;
 
     public TgParser(SimpleTelegramClientFactory clientFactory,
                     NoteStorageService storage,
-                    ParameterRequester parameterRequester,
                     InteractionStarter starter,
                     ErrorInformer errorInformer) {
 
         this.storage = storage;
         this.starter = starter;
-        this.parameterRequester = parameterRequester;
         this.errorHandler = new ErrorHandler(errorInformer);
-        Log.setLogMessageHandler(1, new Slf4JLogMessageHandler());
+
         APIToken apiToken = new APIToken(AppPropertiesHandler.getApiID(), AppPropertiesHandler.getApiHash());
         TDLibSettings settings = TDLibSettings.create(apiToken);
         Path sessionPath = Paths.get("session");
@@ -74,7 +70,7 @@ public final class TgParser implements ParserService {
                 starter.showQrCode(link);
             }
             case TdApi.AuthorizationStateWaitPassword waitPassword -> {
-                String password = parameterRequester.ask2FAPassword();
+                String password = starter.ask2FAPassword();
                 client.send(new TdApi.CheckAuthenticationPassword(password), errorHandler);
             }
             case TdApi.AuthorizationStateReady ready -> {

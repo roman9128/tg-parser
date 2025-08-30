@@ -12,7 +12,7 @@ import rt.model.preset.PresetDTO;
 import rt.model.service.*;
 import rt.nlp.NLPService;
 import rt.view.View;
-import rt.view.gui.SwingUI;
+import rt.view.swing.SwingUI;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -22,7 +22,7 @@ import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class ServiceManager implements ParameterRequester, InteractionStarter, ErrorInformer {
+public class ServiceManager implements InteractionStarter, ErrorInformer {
 
     private ParserService parserService;
     private AnalyzerService analyzerService;
@@ -63,7 +63,6 @@ public class ServiceManager implements ParameterRequester, InteractionStarter, E
         parserService = new TgParser(
                 clientFactory,
                 storage,
-                this,
                 this,
                 this);
         view.startNotificationListener();

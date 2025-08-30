@@ -1,4 +1,4 @@
-package rt.view.gui;
+package rt.view.swing;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;

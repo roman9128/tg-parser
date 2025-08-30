@@ -1,4 +1,4 @@
-package rt.view.gui;
+package rt.view.swing;
 
 import com.google.zxing.BarcodeFormat;
 import com.google.zxing.MultiFormatWriter;

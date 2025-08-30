@@ -1,4 +1,4 @@
-package rt.view.gui;
+package rt.view.swing;
 
 import org.jdesktop.swingx.JXDatePicker;
 
