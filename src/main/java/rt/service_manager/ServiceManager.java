@@ -1,7 +1,6 @@
 package rt.service_manager;
 
 import it.tdlight.client.SimpleTelegramClientFactory;
-import rt.infrastructure.analyzer.AnalyzerImpl;
 import rt.infrastructure.notifier.Notifier;
 import rt.infrastructure.parser.TgParser;
 import rt.infrastructure.preset.Presetter;
@@ -9,8 +8,10 @@ import rt.infrastructure.recorder.FileRecorder;
 import rt.infrastructure.storage.NoteStorage;
 import rt.model.preset.Preset;
 import rt.model.preset.PresetDTO;
-import rt.model.service.*;
-import rt.nlp.NLPService;
+import rt.model.service.FileRecorderService;
+import rt.model.service.NoteStorageService;
+import rt.model.service.ParserService;
+import rt.model.service.PresetService;
 import rt.view.View;
 import rt.view.swing.SwingUI;
 
@@ -25,7 +26,6 @@ import java.util.stream.Stream;
 public class ServiceManager implements InteractionStarter, ErrorInformer {
 
     private ParserService parserService;
-    private AnalyzerService analyzerService;
     private final View view;
     private final NoteStorageService storage;
     private final FileRecorderService recorderService;
@@ -39,11 +39,6 @@ public class ServiceManager implements InteractionStarter, ErrorInformer {
         this.storage = new NoteStorage();
         this.recorderService = new FileRecorder(storage);
         this.presetService = new Presetter();
-        try {
-            analyzerService = new AnalyzerImpl(storage, new NLPService());
-        } catch (Exception e) {
-            analyzerService = null;
-        }
     }
 
     public void init() {
@@ -97,20 +92,6 @@ public class ServiceManager implements InteractionStarter, ErrorInformer {
         createPreset(userChoiceInput, dateFromString, dateToString);
     }
 
-    public void loadAnalyze(String userChoiceInput, String dateFromString, String dateToString) {
-        Set<Long> channelsIDs = parseUserChoice(userChoiceInput);
-        Long dateFromUnix = ParserUtil.parseUnixDateStartOfDay(dateFromString);
-        Long dateToUnix = ParserUtil.parseUnixDateEndOfDay(dateToString);
-        executor.execute(() -> {
-            parserService.loadChannelsHistory(channelsIDs, dateFromUnix, dateToUnix);
-            if (!noAnyNotes()) {
-                analyzerService.classify();
-                Notifier.getInstance().addNotification("Загрузка и анализ сообщений закончены");
-            }
-        });
-        createPreset(userChoiceInput, dateFromString, dateToString);
-    }
-
     public void loadAnalyzeWrite(String userChoiceInput, String dateFromString, String dateToString) {
         Set<Long> channelsIDs = parseUserChoice(userChoiceInput);
         Long dateFromUnix = ParserUtil.parseUnixDateStartOfDay(dateFromString);
@@ -118,7 +99,6 @@ public class ServiceManager implements InteractionStarter, ErrorInformer {
         executor.execute(() -> {
             parserService.loadChannelsHistory(channelsIDs, dateFromUnix, dateToUnix);
             if (!noAnyNotes()) {
-                analyzerService.classify();
                 write("");
             }
         });
@@ -158,14 +138,6 @@ public class ServiceManager implements InteractionStarter, ErrorInformer {
 
     public void write(String value) {
         recorderService.write(value.isBlank());
-    }
-
-    public boolean analyzerIsAvailable() {
-        return analyzerService != null;
-    }
-
-    public void classify() {
-        analyzerService.classify();
     }
 
     public void find(String[] args) {
@@ -213,22 +185,7 @@ public class ServiceManager implements InteractionStarter, ErrorInformer {
     }
 
     private void findNotesByTopic(String how, String[] what) {
-        Map<String, Double> result = new HashMap<>();
-        for (String s : what) {
-            result.putAll(getParams(s));
-        }
-        storage.findNotesByTopic(how, result);
-    }
-
-    private Map<String, Double> getParams(String s) {
-        String[] paramsPair = s.split("-", 2);
-        Map<String, Double> result = new HashMap<>();
-        try {
-            result.put(paramsPair[0], Double.parseDouble(paramsPair[1]));
-        } catch (Exception e) {
-            result.put(paramsPair[0], 55.0); // default value
-        }
-        return result;
+        storage.findNotesByTopic(how, what);
     }
 
     private void findNotesByText(String how, String[] what) {

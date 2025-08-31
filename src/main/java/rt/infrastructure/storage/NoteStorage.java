@@ -1,9 +1,11 @@
 package rt.infrastructure.storage;
 
 import it.tdlight.jni.TdApi;
+import rt.infrastructure.analyzer.Analyzer;
 import rt.model.note.Note;
 import rt.model.service.NoteStorageService;
 
+import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.stream.Collectors;
@@ -15,9 +17,18 @@ public class NoteStorage implements NoteStorageService {
     private final HashMap<String, Integer> argsMap = new HashMap<>();
     private final NoteFinder noteFinder = new NoteFinder();
     private final NotesCounter notesCounter = new NotesCounter();
+    private Analyzer analyzer;
+
+    public NoteStorage() {
+        try {
+            this.analyzer = new Analyzer();
+        } catch (IOException e) {
+            this.analyzer = null;
+        }
+    }
 
     @Override
-    public void createNote(TdApi.Message message, String senderName) {
+    public void createNote(TdApi.Message message, String senderName, String link) {
         String text = "";
         TdApi.MessageContent messageContent = message.content;
         switch (messageContent) {
@@ -37,7 +48,15 @@ public class NoteStorage implements NoteStorageService {
                 text = "Сообщение без текста" + System.lineSeparator();
             }
         }
-        notes.offer(new Note(message.id, message.chatId, message.date, senderName, text));
+
+        Set<String> topic = analyzer.classify(text)
+                .entrySet()
+                .stream()
+                .filter(e -> e.getValue() > 55)
+                .map(Map.Entry::getKey)
+                .collect(Collectors.toSet());
+
+        notes.offer(new Note(message.id, message.chatId, message.date, senderName, text, link, topic));
     }
 
     @Override
@@ -96,7 +115,7 @@ public class NoteStorage implements NoteStorageService {
     }
 
     @Override
-    public void findNotesByTopic(String how, Map<String, Double> what) {
+    public void findNotesByTopic(String how, String[] what) {
         for (Note note : notes) {
             if (noteFinder.topicsMeetConditions(note, how, what)) {
                 chosen_notes.addLast(note);

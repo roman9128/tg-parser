@@ -3,10 +3,8 @@ package rt.model.service;
 import it.tdlight.jni.TdApi;
 import rt.model.note.Note;
 
-import java.util.Map;
-
 public interface NoteStorageService {
-    void createNote(TdApi.Message message, String senderName);
+    void createNote(TdApi.Message message, String senderName, String link);
 
     int getAllNotesQuantity();
 
@@ -18,7 +16,7 @@ public interface NoteStorageService {
 
     void findNotesByText(String how, String[] what);
 
-    void findNotesByTopic(String how, Map<String, Double> what);
+    void findNotesByTopic(String how, String[] what);
 
     String getWordsStat();
 

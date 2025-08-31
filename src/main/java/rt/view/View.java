@@ -44,20 +44,8 @@ public abstract class View {
         executor.shutdownNow();
     }
 
-    public void load(String source, String dateFromString, String dateToString) {
-        serviceManager.load(source, dateFromString, dateToString);
-    }
-
     public void find(String[] args) {
         serviceManager.find(args);
-    }
-
-    public void classify() {
-        if (serviceManager.analyzerIsAvailable()) {
-            serviceManager.classify();
-        } else {
-            print("Анализатор выключен");
-        }
     }
 
     public void write(String value) {

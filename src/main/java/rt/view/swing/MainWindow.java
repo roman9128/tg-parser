@@ -197,7 +197,7 @@ class MainWindow extends JFrame {
                 dateToString = sdf.format(endDatePicker.getDate());
             }
         }
-        swingUI.loadAnalyze(sources, dateFromString, dateToString);
+        swingUI.load(sources, dateFromString, dateToString);
         updatePresetsList();
     }
 

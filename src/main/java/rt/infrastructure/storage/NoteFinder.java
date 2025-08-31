@@ -3,7 +3,7 @@ package rt.infrastructure.storage;
 import rt.model.note.Note;
 
 import java.util.Arrays;
-import java.util.Map;
+import java.util.Set;
 
 class NoteFinder {
 
@@ -12,45 +12,33 @@ class NoteFinder {
             return false;
         }
         String text = note.getText().toLowerCase();
+        String[] conditions = removeDuplicates(what);
         return switch (how) {
-            case "or" -> Arrays.stream(what).anyMatch(text::contains);
-            case "and" -> Arrays.stream(what).allMatch(text::contains);
-            case "not" -> Arrays.stream(what).noneMatch(text::contains);
+            case "or" -> Arrays.stream(conditions).anyMatch(text::contains);
+            case "and" -> Arrays.stream(conditions).allMatch(text::contains);
+            case "not" -> Arrays.stream(conditions).noneMatch(text::contains);
             default -> false;
         };
     }
 
-    boolean topicsMeetConditions(Note note, String how, Map<String, Double> what) {
-        if (note.getKeyWords().isEmpty()) {
+    boolean topicsMeetConditions(Note note, String how, String[] what) {
+        if (note.getTopic().isEmpty()) {
             return false;
         }
-        Map<String, Double> keyWords = note.getKeyWords();
+        Set<String> topic = note.getTopic();
+        String[] conditions = removeDuplicates(what);
         return switch (how) {
-            case "or" -> what.keySet().stream().anyMatch(k -> {
-                Double keyWordValue = keyWords.get(k);
-                Double userInputValue = what.get(k);
-                if (keyWordValue == null || userInputValue == null) {
-                    return false;
-                }
-                return keyWordValue >= userInputValue;
-            });
-            case "and" -> what.keySet().stream().allMatch(k -> {
-                Double keyWordValue = keyWords.get(k);
-                Double userInputValue = what.get(k);
-                if (keyWordValue == null || userInputValue == null) {
-                    return false;
-                }
-                return keyWordValue >= userInputValue;
-            });
-            case "not" -> what.keySet().stream().noneMatch(k -> {
-                Double keyWordValue = keyWords.get(k);
-                Double userInputValue = what.get(k);
-                if (keyWordValue == null || userInputValue == null) {
-                    return false;
-                }
-                return keyWordValue >= userInputValue;
-            });
+            case "or" -> Arrays.stream(conditions).anyMatch(topic::contains);
+            case "and" -> Arrays.stream(conditions).allMatch(topic::contains);
+            case "not" -> Arrays.stream(conditions).noneMatch(topic::contains);
             default -> false;
         };
+    }
+
+    private String[] removeDuplicates(String[] array) {
+        return Arrays.stream(array)
+                .map(String::toLowerCase)
+                .distinct()
+                .toArray(String[]::new);
     }
 }

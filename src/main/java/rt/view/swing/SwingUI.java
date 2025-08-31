@@ -53,8 +53,6 @@ public class SwingUI extends View {
                 print(e.getMessage());
             }
             print(text);
-        } else if (text.equals("Загрузка и анализ сообщений закончены")) {
-            mainWindow.showMessageDialog(text + System.lineSeparator() + "Теперь доступны функции поиска и записи сообщений");
         } else if (text.contains("Всего отобрано сообщений: ")) {
             mainWindow.showMessageDialog(text);
             mainWindow.print(LocalDateTime.now().format(dtf) + text + System.lineSeparator().repeat(2));
@@ -63,8 +61,8 @@ public class SwingUI extends View {
         }
     }
 
-    public void loadAnalyze(String source, String dateFromString, String dateToString) {
-        serviceManager.loadAnalyze(source, dateFromString, dateToString);
+    public void load(String source, String dateFromString, String dateToString) {
+        serviceManager.load(source, dateFromString, dateToString);
     }
 
     @Override

@@ -6,11 +6,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import rt.model.note.Note;
 
 import java.sql.*;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.Set;
 
 public class SQLiteConnector {
-    private final String DB_URL = "jdbc:sqlite:notes.db";
+    private final String DB_URL = "jdbc:sqlite:./data/notes.db";
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     public void createTable() {
@@ -22,7 +21,8 @@ public class SQLiteConnector {
                         msg_time_unix INTEGER NOT NULL,
                         text TEXT NOT NULL,
                         msg_link TEXT,
-                        key_words TEXT,
+                        topic TEXT,
+                        created_at INTEGER NOT NULL DEFAULT (strftime('%s','now')),
                 
                         PRIMARY KEY (message_id, sender_id)
                     )
@@ -36,9 +36,9 @@ public class SQLiteConnector {
         }
     }
 
-    public void upsertNote(Note note) {
+    public void addNote(Note note) {
         String sql = """
-                INSERT OR REPLACE INTO notes(message_id, sender_id, sender_name, msg_time_unix, text, msg_link, key_words) 
+                INSERT OR IGNORE INTO notes(message_id, sender_id, sender_name, msg_time_unix, text, msg_link, topic)
                 VALUES(?, ?, ?, ?, ?, ?, ?)
                 """;
 
@@ -50,8 +50,8 @@ public class SQLiteConnector {
             pstmt.setString(3, note.getSenderName());
             pstmt.setInt(4, note.getMsgTimeUNIX());
             pstmt.setString(5, note.getText());
-            pstmt.setString(6, note.getMsgLink());
-            pstmt.setString(7, mapToString(note.getKeyWords()));
+            pstmt.setString(6, note.getLink());
+            pstmt.setString(7, setToString(note.getTopic()));
 
             pstmt.executeUpdate();
             System.out.println("Запись добавлена");
@@ -62,28 +62,25 @@ public class SQLiteConnector {
     }
 
 
-    private String mapToString(Map<String, Double> map) {
-        if (map == null || map.isEmpty()) {
-            return "";
+    private String setToString(Set<String> set) {
+        if (set == null || set.isEmpty()) {
+            return "[]";
         }
         try {
-            return objectMapper.writeValueAsString(map);
+            return objectMapper.writeValueAsString(set);
         } catch (JsonProcessingException e) {
-            System.out.println("Ошибка при сериализации ключевых слов: " + e.getMessage());
-            return "";
-        }
+            return "[]";        }
     }
 
-    private Map<String, Double> stringToMap(String str) {
+    private Set<String> stringToSet(String str) {
         if (str == null || str.isBlank()) {
-            return new HashMap<>();
+            return Set.of();
         }
         try {
             return objectMapper.readValue(str, new TypeReference<>() {
             });
         } catch (JsonProcessingException e) {
-            System.out.println("Ошибка при десериализации ключевых слов: " + e.getMessage());
-            return new HashMap<>();
+            return Set.of();
         }
     }
 }

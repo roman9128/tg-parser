@@ -1,14 +1,11 @@
 package rt.infrastructure.parser;
 
-import it.tdlight.Log;
-import it.tdlight.Slf4JLogMessageHandler;
 import it.tdlight.client.*;
 import it.tdlight.jni.TdApi;
 import rt.infrastructure.config.AppPropertiesHandler;
 import rt.infrastructure.config.ParsingPropertiesChanger;
 import rt.infrastructure.config.ParsingPropertiesHandler;
 import rt.infrastructure.notifier.Notifier;
-import rt.model.note.Note;
 import rt.model.service.NoteStorageService;
 import rt.model.service.ParserService;
 import rt.service_manager.ErrorInformer;
@@ -273,25 +270,24 @@ public final class TgParser implements ParserService {
         while (!chatHistoryLoader.isEmpty()) {
             TdApi.Message message = chatHistoryLoader.takeMessage();
             String senderName = chats.get(message.chatId).title;
-            storage.createNote(message, senderName);
+            String link = getMsgLink(message);
+            storage.createNote(message, senderName, link);
         }
         storage.removeCopies();
-        storage.getNotesCommonPool().forEach(note -> {
-            if (!note.hasLink()) {
-                getMsgLink(note);
-            }
-        });
     }
 
-    private void getMsgLink(Note note) {
-        client.send(new TdApi.GetMessageLink(note.getSenderID(), note.getMessageID(), 0, true, true))
-                .whenCompleteAsync((link, error) -> {
-                    if (error != null) {
-                        note.setMsgLink("Не удалось получить ссылку");
-                    } else {
-                        note.setMsgLink(link.link);
-                    }
-                });
+    private String getMsgLink(TdApi.Message message) {
+        try {
+            return client.send(new TdApi.GetMessageLink(
+                            message.chatId,
+                            message.id,
+                            0,
+                            true,
+                            true))
+                    .get().link;
+        } catch (Exception e) {
+            return "Не удалось получить ссылку";
+        }
     }
 
     @Override
