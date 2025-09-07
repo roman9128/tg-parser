@@ -1,5 +1,7 @@
 package rt.model.note;
 
+import rt.model.entity.Entity;
+
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -7,7 +9,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Set;
-import java.util.TreeSet;
+import java.util.stream.Collectors;
 
 public class Note {
     private final Long messageID;
@@ -17,9 +19,9 @@ public class Note {
     private final String text;
     private final String link;
     private final Set<String> topic;
-    private final Set<String> ner = new TreeSet<>();
+    private final Set<Entity> ner;
 
-    public Note(Long messageID, Long senderID, Integer msgTimeUNIX, String senderName, String text, String link, Set<String> topic) {
+    public Note(Long messageID, Long senderID, Integer msgTimeUNIX, String senderName, String text, String link, Set<String> topic, Set<Entity> ner) {
         this.messageID = messageID;
         this.senderID = senderID;
         this.msgTimeUNIX = msgTimeUNIX;
@@ -27,10 +29,7 @@ public class Note {
         this.text = text;
         this.link = link;
         this.topic = topic;
-    }
-
-    public void setNer(Set<String> ner) {
-        this.ner.addAll(ner);
+        this.ner = ner;
     }
 
     private String convertTimeUNIXtoString(Integer msgTimeUNIX) {
@@ -67,16 +66,16 @@ public class Note {
         return topic;
     }
 
-    public Set<String> getNer() {
+    public Set<Entity> getNer() {
         return ner;
     }
 
-    private String getTopicsAsText() {
-        if (topic.isEmpty()) {
-            return "не определена";
-        } else {
-            return String.join(", ", topic);
-        }
+    private String getTopicAsText() {
+        return String.join(", ", topic);
+    }
+
+    private String getNerAsText() {
+        return ner.stream().map(Entity::getName).collect(Collectors.joining(", "));
     }
 
     @Override
@@ -95,20 +94,18 @@ public class Note {
     @Override
     public String toString() {
         StringBuilder builder = new StringBuilder();
-        builder.append("{")
-                .append(System.lineSeparator())
-                .append("Время: ").append(convertTimeUNIXtoString(msgTimeUNIX))
-                .append(System.lineSeparator())
-                .append("Автор: ").append(senderName)
-                .append(System.lineSeparator())
-                .append("Ссылка: ").append(link)
-                .append(System.lineSeparator())
-                .append("Текст: ").append(text)
-                .append(System.lineSeparator())
-                .append("Тема: ").append(getTopicsAsText())
-                .append(System.lineSeparator())
-                .append("}")
-                .append(System.lineSeparator());
+        builder.append("{").append(System.lineSeparator())
+                .append("Время: ").append(convertTimeUNIXtoString(msgTimeUNIX)).append(System.lineSeparator())
+                .append("Автор: ").append(senderName).append(System.lineSeparator())
+                .append("Ссылка: ").append(link).append(System.lineSeparator())
+                .append("Текст: ").append(text).append(System.lineSeparator());
+        if (!topic.isEmpty()) {
+            builder.append("Тема: ").append(getTopicAsText()).append(System.lineSeparator());
+        }
+        if (!ner.isEmpty()) {
+            builder.append("Имена: ").append(getNerAsText()).append(System.lineSeparator());
+        }
+        builder.append("}").append(System.lineSeparator());
         return builder.toString();
     }
 }

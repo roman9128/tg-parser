@@ -1,22 +1,23 @@
 package rt.infrastructure.analyzer;
 
-import rt.nlp.NLPService;
+import rt.model.entity.Entity;
+import rt.infrastructure.analyzer.ner.*;
+import rt.infrastructure.analyzer.nlp.*;
 
-import java.io.IOException;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 public class Analyzer {
 
-    private final NLPService service = new NLPService();
-
-    public Analyzer() throws IOException {
-    }
+    private final NLPService nlpService = new NLPService();
+    private final NERService nerService = new NERService();
 
     public Map<String, Double> classify(String text) {
-        return service.classify(text);
+        return nlpService.classify(text);
     }
-//
-//    public Set<String> makeNer(String text) {
-//        return service.makeNer(text);
-//    }
+
+    public Set<Entity> recognizeNE(String text) {
+        return nerService.extractEntitiesByPartialName(text);
+    }
 }

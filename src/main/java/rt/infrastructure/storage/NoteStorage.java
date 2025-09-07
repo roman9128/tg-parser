@@ -2,10 +2,10 @@ package rt.infrastructure.storage;
 
 import it.tdlight.jni.TdApi;
 import rt.infrastructure.analyzer.Analyzer;
+import rt.model.entity.Entity;
 import rt.model.note.Note;
 import rt.model.service.NoteStorageService;
 
-import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.stream.Collectors;
@@ -17,15 +17,7 @@ public class NoteStorage implements NoteStorageService {
     private final HashMap<String, Integer> argsMap = new HashMap<>();
     private final NoteFinder noteFinder = new NoteFinder();
     private final NotesCounter notesCounter = new NotesCounter();
-    private Analyzer analyzer;
-
-    public NoteStorage() {
-        try {
-            this.analyzer = new Analyzer();
-        } catch (IOException e) {
-            this.analyzer = null;
-        }
-    }
+    private final Analyzer analyzer = new Analyzer();
 
     @Override
     public void createNote(TdApi.Message message, String senderName, String link) {
@@ -55,8 +47,8 @@ public class NoteStorage implements NoteStorageService {
                 .filter(e -> e.getValue() > 55)
                 .map(Map.Entry::getKey)
                 .collect(Collectors.toSet());
-
-        notes.offer(new Note(message.id, message.chatId, message.date, senderName, text, link, topic));
+        Set<Entity> ner = analyzer.recognizeNE(text);
+        notes.offer(new Note(message.id, message.chatId, message.date, senderName, text, link, topic, ner));
     }
 
     @Override

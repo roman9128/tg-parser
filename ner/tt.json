@@ -1,0 +1,30 @@
+[
+  {
+    "name": "Илон Маск",
+    "synonyms": [
+      "Elon Musk",
+      "Илон Рив Маск"
+    ],
+    "category": "Person",
+    "description": "Предприниматель, основатель Tesla и SpaceX",
+    "tags": [
+      "entrepreneur",
+      "technology",
+      "billionaire"
+    ]
+  },
+  {
+    "name": "Tesla, Inc.",
+    "synonyms": [
+      "Tesla",
+      "TSLA"
+    ],
+    "category": "Organization",
+    "description": "Американская компания по производству электромобилей и солнечных панелей",
+    "tags": [
+      "tech",
+      "automotive",
+      "NASDAQ"
+    ]
+  }
+]

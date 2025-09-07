@@ -6,6 +6,7 @@ import rt.infrastructure.parser.TgParser;
 import rt.infrastructure.preset.Presetter;
 import rt.infrastructure.recorder.FileRecorder;
 import rt.infrastructure.storage.NoteStorage;
+import rt.infrastructure.storage.SQLiteService;
 import rt.model.preset.Preset;
 import rt.model.preset.PresetDTO;
 import rt.model.service.FileRecorderService;
@@ -36,7 +37,7 @@ public class ServiceManager implements InteractionStarter, ErrorInformer {
     public ServiceManager() {
         this.view = new SwingUI();
         view.setServiceManager(this);
-        this.storage = new NoteStorage();
+        this.storage = new SQLiteService();
         this.recorderService = new FileRecorder(storage);
         this.presetService = new Presetter();
     }

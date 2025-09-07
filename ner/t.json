@@ -1,0 +1,23 @@
+[
+  {
+    "name": "Apple Inc.",
+    "synonyms": ["Apple", "AAPL"],
+    "category": "Organization",
+    "description": "Американская технологическая компания",
+    "tags": ["tech", "company", "NASDAQ"]
+  },
+  {
+    "name": "Microsoft Corporation",
+    "synonyms": ["Microsoft", "MSFT"],
+    "category": "Organization",
+    "description": "Американская технологическая компания, производитель ПО и облачных сервисов",
+    "tags": ["tech", "software", "NASDAQ"]
+  },
+  {
+    "name": "Москва",
+    "synonyms": ["Moscow", "Moskov"],
+    "category": "Location",
+    "description": "Столица России",
+    "tags": ["capital", "city", "europe"]
+  }
+]
