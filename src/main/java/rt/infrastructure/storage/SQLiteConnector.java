@@ -1,11 +1,10 @@
 package rt.infrastructure.storage;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import rt.infrastructure.notifier.Notifier;
 import rt.model.entity.Entity;
 import rt.model.note.Note;
+import rt.model.search.MatchMode;
+import rt.utils.JsonUtils;
 
 import java.sql.*;
 import java.util.*;
@@ -13,7 +12,6 @@ import java.util.stream.Collectors;
 
 public class SQLiteConnector {
     private final String DB_URL = "jdbc:sqlite:./data/notes.db";
-    private final ObjectMapper objectMapper = new ObjectMapper();
 
     public void createTables() {
         String createNotesTable = """
@@ -89,17 +87,17 @@ public class SQLiteConnector {
                 pstmtNote.setInt(4, note.getMsgTimeUNIX());
                 pstmtNote.setString(5, note.getText());
                 pstmtNote.setString(6, note.getLink());
-                pstmtNote.setString(7, setToString(note.getTopic()));
+                pstmtNote.setString(7, JsonUtils.setToString(note.getTopic()));
                 pstmtNote.executeUpdate();
             }
 
             for (Entity entity : note.getNer()) {
                 try (PreparedStatement pstmtEntity = conn.prepareStatement(insertEntitySQL)) {
                     pstmtEntity.setString(1, entity.getName());
-                    pstmtEntity.setString(2, setToString(entity.getSynonyms()));
+                    pstmtEntity.setString(2, JsonUtils.setToString(entity.getSynonyms()));
                     pstmtEntity.setString(3, entity.getCategory());
                     pstmtEntity.setString(4, entity.getDescription());
-                    pstmtEntity.setString(5, setToString(entity.getTags()));
+                    pstmtEntity.setString(5, JsonUtils.setToString(entity.getTags()));
                     pstmtEntity.executeUpdate();
                 }
 
@@ -117,72 +115,17 @@ public class SQLiteConnector {
         }
     }
 
-    public List<Note> getAllNotes() {
-        Map<String, Note> notesMap = new LinkedHashMap<>();
-        String sql = """
-                SELECT n.message_id, n.sender_id, n.sender_name, n.msg_time_unix, n.text, n.msg_link, n.topic,
-                       e.name AS entity_name, e.synonyms AS entity_synonyms, e.category AS entity_category,
-                       e.description AS entity_description, e.tags AS entity_tags
-                FROM notes n
-                LEFT JOIN note_entities ne
-                ON n.message_id = ne.message_id AND n.sender_id = ne.sender_id
-                LEFT JOIN entities e
-                ON ne.entity_name = e.name AND ne.entity_category = e.category
-                ORDER BY n.message_id, n.sender_id
-                """;
-
-        try (Connection conn = DriverManager.getConnection(DB_URL);
-             PreparedStatement pstmt = conn.prepareStatement(sql);
-             ResultSet rs = pstmt.executeQuery()) {
-
-            while (rs.next()) {
-                Long messageID = rs.getLong("message_id");
-                Long senderID = rs.getLong("sender_id");
-                String key = messageID + "_" + senderID;
-
-                Note note = notesMap.get(key);
-                if (note == null) {
-                    String senderName = rs.getString("sender_name");
-                    Integer msgTimeUNIX = rs.getInt("msg_time_unix");
-                    String text = rs.getString("text");
-                    String link = rs.getString("msg_link");
-                    Set<String> topic = stringToSet(rs.getString("topic"));
-
-                    note = new Note(messageID, senderID, msgTimeUNIX, senderName, text, link, topic, new HashSet<>());
-                    notesMap.put(key, note);
-                }
-
-                String entityName = rs.getString("entity_name");
-                if (entityName != null) {
-                    Set<String> synonyms = stringToSet(rs.getString("entity_synonyms"));
-                    String category = rs.getString("entity_category");
-                    String description = rs.getString("entity_description");
-                    Set<String> tags = stringToSet(rs.getString("entity_tags"));
-
-                    note.getNer().add(new Entity(entityName, synonyms, category, description, tags));
-                }
-            }
-
-        } catch (SQLException e) {
-            Notifier.getInstance().addNotification("Ошибка при получении заметок: " + e.getMessage());
-        }
-        return new ArrayList<>(notesMap.values());
-    }
-
-    public List<Note> findNotesByTopic(String how, String[] what) {
-        String[] conditions = removeDuplicates(what);
-
+    public List<Note> findNotesByTopic(MatchMode how, String[] topics) {
         String whereClause = switch (how) {
-            case "or" -> Arrays.stream(conditions)
+            case OR -> Arrays.stream(topics)
                     .map(c -> "LOWER(n.topic) LIKE LOWER('%" + c + "%')")
                     .collect(Collectors.joining(" OR "));
-            case "and" -> Arrays.stream(conditions)
+            case AND -> Arrays.stream(topics)
                     .map(c -> "LOWER(n.topic) LIKE LOWER('%" + c + "%')")
                     .collect(Collectors.joining(" AND "));
-            case "not" -> Arrays.stream(conditions)
+            case NOT -> Arrays.stream(topics)
                     .map(c -> "LOWER(n.topic) NOT LIKE LOWER('%" + c + "%')")
                     .collect(Collectors.joining(" AND "));
-            default -> "1=0";
         };
 
         String sql = """
@@ -215,7 +158,7 @@ public class SQLiteConnector {
                     Integer msgTimeUNIX = rs.getInt("msg_time_unix");
                     String text = rs.getString("text");
                     String link = rs.getString("msg_link");
-                    Set<String> topic = stringToSet(rs.getString("topic"));
+                    Set<String> topic = JsonUtils.stringToSet(rs.getString("topic"));
 
                     note = new Note(messageID, senderID, msgTimeUNIX, senderName, text, link, topic, new HashSet<>());
                     notesMap.put(key, note);
@@ -223,10 +166,10 @@ public class SQLiteConnector {
 
                 String entityName = rs.getString("entity_name");
                 if (entityName != null) {
-                    Set<String> synonyms = stringToSet(rs.getString("entity_synonyms"));
+                    Set<String> synonyms = JsonUtils.stringToSet(rs.getString("entity_synonyms"));
                     String category = rs.getString("entity_category");
                     String description = rs.getString("entity_description");
-                    Set<String> tags = stringToSet(rs.getString("entity_tags"));
+                    Set<String> tags = JsonUtils.stringToSet(rs.getString("entity_tags"));
 
                     note.getNer().add(new Entity(entityName, synonyms, category, description, tags));
                 }
@@ -235,6 +178,158 @@ public class SQLiteConnector {
             Notifier.getInstance().addNotification("Ошибка при поиске заметок: " + e.getMessage());
         }
 
+        return new ArrayList<>(notesMap.values());
+    }
+
+    public List<Note> findNotesByEntities(MatchMode how, List<Entity> entities) {
+        List<Note> notes = new ArrayList<>();
+        if (entities == null || entities.isEmpty()) {
+            return notes;
+        }
+        String placeholders = entities.stream()
+                .map(e -> "(?, ?)")
+                .collect(Collectors.joining(", "));
+        String baseSql = """
+                SELECT n.message_id, n.sender_id, n.sender_name, n.msg_time_unix, n.text, n.msg_link,
+                       nt.topic,
+                       ne.entity_name, ne.entity_category, ne.entity_description, ne.entity_tags
+                FROM notes n
+                LEFT JOIN note_topics nt ON n.message_id = nt.message_id AND n.sender_id = nt.sender_id
+                LEFT JOIN note_entities ne ON n.message_id = ne.message_id AND n.sender_id = ne.sender_id
+                """;
+        switch (how) {
+            case AND -> {
+                baseSql += """
+                        WHERE (n.message_id, n.sender_id) IN (
+                            SELECT ne.message_id, ne.sender_id
+                            FROM note_entities ne
+                            WHERE (ne.entity_name, ne.entity_category) IN (%s)
+                            GROUP BY ne.message_id, ne.sender_id
+                            HAVING COUNT(DISTINCT ne.entity_name || '|' || ne.entity_category) = ?
+                        )
+                        """.formatted(placeholders);
+            }
+            case OR -> {
+                baseSql += """
+                        WHERE (ne.entity_name, ne.entity_category) IN (%s)
+                        """.formatted(placeholders);
+            }
+            case NOT -> {
+                baseSql += """
+                        WHERE (n.message_id, n.sender_id) NOT IN (
+                            SELECT ne.message_id, ne.sender_id
+                            FROM note_entities ne
+                            WHERE (ne.entity_name, ne.entity_category) IN (%s)
+                        )
+                        """.formatted(placeholders);
+            }
+            default -> {
+                return notes;
+            }
+        }
+        try (Connection conn = DriverManager.getConnection(DB_URL);
+             PreparedStatement pstmt = conn.prepareStatement(baseSql)) {
+            int idx = 1;
+            for (Entity e : entities) {
+                pstmt.setString(idx++, e.getName());
+                pstmt.setString(idx++, e.getCategory());
+            }
+            if (how == MatchMode.AND) {
+                pstmt.setInt(idx, entities.size());
+            }
+            try (ResultSet rs = pstmt.executeQuery()) {
+                Map<String, Note> noteMap = new HashMap<>();
+                while (rs.next()) {
+                    long messageId = rs.getLong("message_id");
+                    long senderId = rs.getLong("sender_id");
+                    String key = messageId + "_" + senderId;
+                    Note note = noteMap.get(key);
+                    if (note == null) {
+                        note = new Note(
+                                messageId,
+                                senderId,
+                                rs.getInt("msg_time_unix"),
+                                rs.getString("sender_name"),
+                                rs.getString("text"),
+                                rs.getString("msg_link"),
+                                new HashSet<>(),
+                                new HashSet<>()
+                        );
+                        noteMap.put(key, note);
+                    }
+                    String topic = rs.getString("topic");
+                    if (topic != null) {
+                        note.getTopic().add(topic);
+                    }
+                    String entityName = rs.getString("entity_name");
+                    if (entityName != null) {
+                        String category = rs.getString("entity_category");
+                        String description = rs.getString("entity_description");
+                        String tagsStr = rs.getString("entity_tags");
+                        Set<String> tags = (tagsStr == null || tagsStr.isBlank())
+                                ? Set.of()
+                                : Set.of(tagsStr.split(","));
+
+                        note.getNer().add(new Entity(entityName, Set.of(), category, description, tags));
+                    }
+                }
+                notes.addAll(noteMap.values());
+            }
+        } catch (SQLException e) {
+            System.out.println("Ошибка при поиске заметок по Entity: " + e.getMessage());
+        }
+        return notes;
+    }
+
+    public List<Note> getAllNotes() {
+        Map<String, Note> notesMap = new LinkedHashMap<>();
+        String sql = """
+                SELECT n.message_id, n.sender_id, n.sender_name, n.msg_time_unix, n.text, n.msg_link, n.topic,
+                       e.name AS entity_name, e.synonyms AS entity_synonyms, e.category AS entity_category,
+                       e.description AS entity_description, e.tags AS entity_tags
+                FROM notes n
+                LEFT JOIN note_entities ne
+                ON n.message_id = ne.message_id AND n.sender_id = ne.sender_id
+                LEFT JOIN entities e
+                ON ne.entity_name = e.name AND ne.entity_category = e.category
+                ORDER BY n.message_id, n.sender_id
+                """;
+
+        try (Connection conn = DriverManager.getConnection(DB_URL);
+             PreparedStatement pstmt = conn.prepareStatement(sql);
+             ResultSet rs = pstmt.executeQuery()) {
+
+            while (rs.next()) {
+                Long messageID = rs.getLong("message_id");
+                Long senderID = rs.getLong("sender_id");
+                String key = messageID + "_" + senderID;
+
+                Note note = notesMap.get(key);
+                if (note == null) {
+                    String senderName = rs.getString("sender_name");
+                    Integer msgTimeUNIX = rs.getInt("msg_time_unix");
+                    String text = rs.getString("text");
+                    String link = rs.getString("msg_link");
+                    Set<String> topic = JsonUtils.stringToSet(rs.getString("topic"));
+
+                    note = new Note(messageID, senderID, msgTimeUNIX, senderName, text, link, topic, new HashSet<>());
+                    notesMap.put(key, note);
+                }
+
+                String entityName = rs.getString("entity_name");
+                if (entityName != null) {
+                    Set<String> synonyms = JsonUtils.stringToSet(rs.getString("entity_synonyms"));
+                    String category = rs.getString("entity_category");
+                    String description = rs.getString("entity_description");
+                    Set<String> tags = JsonUtils.stringToSet(rs.getString("entity_tags"));
+
+                    note.getNer().add(new Entity(entityName, synonyms, category, description, tags));
+                }
+            }
+
+        } catch (SQLException e) {
+            Notifier.getInstance().addNotification("Ошибка при получении заметок: " + e.getMessage());
+        }
         return new ArrayList<>(notesMap.values());
     }
 
@@ -250,8 +345,8 @@ public class SQLiteConnector {
                 String name = rs.getString("name");
                 String category = rs.getString("category");
                 String description = rs.getString("description");
-                Set<String> synonyms = stringToSet(rs.getString("synonyms"));
-                Set<String> tags = stringToSet(rs.getString("tags"));
+                Set<String> synonyms = JsonUtils.stringToSet(rs.getString("synonyms"));
+                Set<String> tags = JsonUtils.stringToSet(rs.getString("tags"));
 
                 Entity entity = new Entity(name, synonyms, category, description, tags);
                 entities.add(entity);
@@ -264,33 +359,31 @@ public class SQLiteConnector {
         return entities;
     }
 
-    private String setToString(Set<String> set) {
-        if (set == null || set.isEmpty()) {
-            return "[]";
-        }
-        try {
-            return objectMapper.writeValueAsString(set);
-        } catch (JsonProcessingException e) {
-            return "[]";
-        }
-    }
+    public Integer getLastMessageTimeBySender(Long senderId) {
+        String sql = """
+                SELECT MAX(msg_time_unix) AS last_time
+                FROM notes
+                WHERE sender_id = ?
+                """;
 
-    private Set<String> stringToSet(String str) {
-        if (str == null || str.isBlank()) {
-            return Set.of();
-        }
-        try {
-            return objectMapper.readValue(str, new TypeReference<>() {
-            });
-        } catch (JsonProcessingException e) {
-            return Set.of();
-        }
-    }
+        try (Connection conn = DriverManager.getConnection(DB_URL);
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
-    private String[] removeDuplicates(String[] array) {
-        return Arrays.stream(array)
-                .map(String::toLowerCase)
-                .distinct()
-                .toArray(String[]::new);
+            pstmt.setLong(1, senderId);
+
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    int lastTime = rs.getInt("last_time");
+                    if (!rs.wasNull()) {
+                        return lastTime;
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            Notifier.getInstance().addNotification(
+                    "Ошибка при получении времени последнего сообщения: " + e.getMessage()
+            );
+        }
+        return null;
     }
 }

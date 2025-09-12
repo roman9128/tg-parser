@@ -2,14 +2,15 @@ package rt.infrastructure.parser;
 
 import it.tdlight.client.*;
 import it.tdlight.jni.TdApi;
+import rt.infrastructure.config.ApiHandler;
+import rt.infrastructure.config.AppPropertiesChanger;
 import rt.infrastructure.config.AppPropertiesHandler;
-import rt.infrastructure.config.ParsingPropertiesChanger;
-import rt.infrastructure.config.ParsingPropertiesHandler;
 import rt.infrastructure.notifier.Notifier;
 import rt.model.service.NoteStorageService;
 import rt.model.service.ParserService;
 import rt.service_manager.ErrorInformer;
 import rt.service_manager.InteractionStarter;
+import rt.utils.NumberUtils;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -32,7 +33,7 @@ public final class TgParser implements ParserService {
     private final ConcurrentMap<Long, TdApi.Supergroup> supergroups = new ConcurrentHashMap<>();
     private final NoteStorageService storage;
     private final InteractionStarter starter;
-    private final ParsingPropertiesChanger parsingPropertiesChanger = new ParsingPropertiesChanger();
+    private final AppPropertiesChanger parsingPropertiesChanger = new AppPropertiesChanger();
     private final ExecutorService blockingExecutor = Executors.newSingleThreadExecutor();
     private final ErrorHandler errorHandler;
 
@@ -45,7 +46,7 @@ public final class TgParser implements ParserService {
         this.starter = starter;
         this.errorHandler = new ErrorHandler(errorInformer);
 
-        APIToken apiToken = new APIToken(AppPropertiesHandler.getApiID(), AppPropertiesHandler.getApiHash());
+        APIToken apiToken = new APIToken(ApiHandler.getApiID(), ApiHandler.getApiHash());
         TDLibSettings settings = TDLibSettings.create(apiToken);
         Path sessionPath = Paths.get("session");
         settings.setDatabaseDirectoryPath(sessionPath.resolve("data"));
@@ -164,7 +165,7 @@ public final class TgParser implements ParserService {
     }
 
     @Override
-    public void loadChannelsHistory(Set<Long> channelsIDs, Long dateFromUnix, Long dateToUnix) {
+    public void loadChannelsHistory(Long channelID, Long dateFromUnix, Long dateToUnix) {
         Long dateNowUnix = LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toEpochSecond();
 
         if (dateFromUnix >= dateToUnix) {
@@ -179,35 +180,25 @@ public final class TgParser implements ParserService {
         chatHistoryLoader.setDateFromUnix(dateFromUnix);
         chatHistoryLoader.setDateToUnix(dateToUnix);
 
-        if (channelsIDs.isEmpty()) {
-            Notifier.getInstance().addNotification("Начинаю загрузку со всех каналов");
-            for (Long chatID : supergroups.keySet()) {
-                loadChatHistory(chatID, dateFromUnix);
-            }
-        } else {
-            Notifier.getInstance().addNotification("Начинаю загрузку сообщений из указанных каналов");
-            for (Long chatID : channelsIDs) {
-                if (isSupergroupInChats(chatID)) {
-                    loadChatHistory(chatID, dateFromUnix);
-                }
-            }
+        if (isSupergroupInChats(channelID)) {
+            loadChatHistory(channelID, dateFromUnix);
         }
+
         chatHistoryLoader.removeSurplus();
         prepareNotes();
-        Notifier.getInstance().addNotification("Всего загружено " + storage.getAllNotesQuantity() + " сообщ., соотв. заданным параметрам");
     }
 
     private void loadChatHistory(Long channelID, Long dateFromUnix) {
         Notifier.getInstance().addNotification("Загружаю сообщения из " + chats.get(channelID).title);
-        int messagesLeft = ParsingPropertiesHandler.getMessagesToDownload();
-        int messagesToStop = ParsingPropertiesHandler.getMessagesToStop();
+        int messagesLeft = AppPropertiesHandler.getMessagesToDownload();
+        int messagesToStop = AppPropertiesHandler.getMessagesToStop();
         long fromMessageID = 0;
         while (true) {
             client.send(
                     new TdApi.GetChatHistory(channelID, fromMessageID, 0, 50, false),
                     chatHistoryLoader);
             try {
-                Thread.sleep(Randomizer.giveNumber());
+                Thread.sleep(NumberUtils.giveRandomNumber());
             } catch (InterruptedException e) {
                 Notifier.getInstance().addNotification(e.getMessage());
             }

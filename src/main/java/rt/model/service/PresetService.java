@@ -7,7 +7,9 @@ import java.util.Map;
 
 public interface PresetService {
 
-    void createPreset(String name, String source, LocalDate start, LocalDate end);
+    void createPreset(String source, LocalDate start, LocalDate end);
+
+    void renamePreset(String oldName, String newName);
 
     Map<String, Preset> getAllPresets();
 

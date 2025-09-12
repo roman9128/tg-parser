@@ -1,29 +1,16 @@
-package rt.service_manager;
+package rt.utils;
 
 import java.time.*;
 import java.time.format.DateTimeFormatter;
 
-class ParserUtil {
+public class DateTimeUtils {
 
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("dd.MM.yyyy");
 
-    static Long parseLongOrGetZero(String numberString) {
-        try {
-            return Long.parseLong(numberString);
-        } catch (NumberFormatException e) {
-            return 0L;
-        }
+    private DateTimeUtils() {
     }
 
-    static Integer parseIntegerOrGetZero(String numberString) {
-        try {
-            return Integer.parseInt(numberString);
-        } catch (NumberFormatException e) {
-            return 0;
-        }
-    }
-
-    static Long parseUnixDateStartOfDay(String dateString) {
+    public static Long parseUnixDateStartOfDay(String dateString) {
         try {
             LocalDate date = LocalDate.parse(dateString, FORMATTER);
             return date.atStartOfDay(ZoneId.systemDefault()).toEpochSecond();
@@ -32,7 +19,7 @@ class ParserUtil {
         }
     }
 
-    static Long parseUnixDateEndOfDay(String dateString) {
+    public static Long parseUnixDateEndOfDay(String dateString) {
         try {
             LocalDate date = LocalDate.parse(dateString, FORMATTER).plusDays(1L);
             return date.atStartOfDay(ZoneId.systemDefault()).toEpochSecond();
@@ -41,11 +28,17 @@ class ParserUtil {
         }
     }
 
-    static LocalDate parseStringToLocalDateOrGetNull(String dateString) {
+    public static LocalDate parseStringToLocalDateOrGetNull(String dateString) {
         try {
             return LocalDate.parse(dateString, FORMATTER);
         } catch (Exception e) {
             return null;
         }
+    }
+
+    public static String calculateDate(Integer dateDiff) {
+        if (dateDiff == null) return "";
+        LocalDate now = LocalDate.now();
+        return now.minusDays(dateDiff).format(FORMATTER);
     }
 }

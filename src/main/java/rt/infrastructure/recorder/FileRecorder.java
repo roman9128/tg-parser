@@ -1,6 +1,6 @@
 package rt.infrastructure.recorder;
 
-import rt.infrastructure.config.ParsingPropertiesHandler;
+import rt.infrastructure.config.AppPropertiesHandler;
 import rt.infrastructure.notifier.Notifier;
 import rt.model.note.Note;
 import rt.model.service.FileRecorderService;
@@ -50,13 +50,13 @@ public class FileRecorder implements FileRecorderService {
             if (!channelName.equals(senderName)) {
                 channelName = senderName;
                 try {
-                    writeToFile(ParsingPropertiesHandler.getFilePath(), ">>>>>>> Далее сообщения из канала " + channelName + System.lineSeparator());
+                    writeToFile(AppPropertiesHandler.getFilePath(), ">>>>>>> Далее сообщения из канала " + channelName + System.lineSeparator());
                 } catch (IOException e) {
                     Notifier.getInstance().addNotification("Ошибка при записи: " + e.getMessage());
                 }
             }
             try {
-                writeToFile(ParsingPropertiesHandler.getFilePath(), note.toString());
+                writeToFile(AppPropertiesHandler.getFilePath(), note.toString());
             } catch (IOException e) {
                 Notifier.getInstance().addNotification("Ошибка при записи в файл: " + e.getMessage());
             }

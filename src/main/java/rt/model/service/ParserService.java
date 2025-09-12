@@ -12,7 +12,7 @@ public interface ParserService extends AutoCloseable {
 
     Map<Long, String> getChannelsIDsAndNames();
 
-    void loadChannelsHistory(Set<Long> from, Long dateFromUnix, Long dateToUnix);
+    void loadChannelsHistory(Long from, Long dateFromUnix, Long dateToUnix);
 
     void close();
 

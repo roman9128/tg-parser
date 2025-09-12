@@ -53,6 +53,8 @@ public class SwingUI extends View {
                 print(e.getMessage());
             }
             print(text);
+        } else if (text.equals("Загрузка окончена")) {
+            mainWindow.showMessageDialog(text);
         } else if (text.contains("Всего отобрано сообщений: ")) {
             mainWindow.showMessageDialog(text);
             mainWindow.print(LocalDateTime.now().format(dtf) + text + System.lineSeparator().repeat(2));

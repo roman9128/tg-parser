@@ -6,18 +6,18 @@ import rt.infrastructure.parser.TgParser;
 import rt.infrastructure.preset.Presetter;
 import rt.infrastructure.recorder.FileRecorder;
 import rt.infrastructure.storage.NoteStorage;
-import rt.infrastructure.storage.SQLiteService;
 import rt.model.preset.Preset;
 import rt.model.preset.PresetDTO;
 import rt.model.service.FileRecorderService;
 import rt.model.service.NoteStorageService;
 import rt.model.service.ParserService;
 import rt.model.service.PresetService;
+import rt.utils.NumberUtils;
+import rt.utils.DateTimeUtils;
 import rt.view.View;
 import rt.view.swing.SwingUI;
 
 import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -37,7 +37,7 @@ public class ServiceManager implements InteractionStarter, ErrorInformer {
     public ServiceManager() {
         this.view = new SwingUI();
         view.setServiceManager(this);
-        this.storage = new SQLiteService();
+        this.storage = new NoteStorage();
         this.recorderService = new FileRecorder(storage);
         this.presetService = new Presetter();
     }
@@ -87,21 +87,13 @@ public class ServiceManager implements InteractionStarter, ErrorInformer {
 
     public void load(String userChoiceInput, String dateFromString, String dateToString) {
         Set<Long> channelsIDs = parseUserChoice(userChoiceInput);
-        Long dateFromUnix = ParserUtil.parseUnixDateStartOfDay(dateFromString);
-        Long dateToUnix = ParserUtil.parseUnixDateEndOfDay(dateToString);
-        executor.execute(() -> parserService.loadChannelsHistory(channelsIDs, dateFromUnix, dateToUnix));
-        createPreset(userChoiceInput, dateFromString, dateToString);
-    }
-
-    public void loadAnalyzeWrite(String userChoiceInput, String dateFromString, String dateToString) {
-        Set<Long> channelsIDs = parseUserChoice(userChoiceInput);
-        Long dateFromUnix = ParserUtil.parseUnixDateStartOfDay(dateFromString);
-        Long dateToUnix = ParserUtil.parseUnixDateEndOfDay(dateToString);
+        Long dateFromUnix = DateTimeUtils.parseUnixDateStartOfDay(dateFromString);
+        Long dateToUnix = DateTimeUtils.parseUnixDateEndOfDay(dateToString);
         executor.execute(() -> {
-            parserService.loadChannelsHistory(channelsIDs, dateFromUnix, dateToUnix);
-            if (!noAnyNotes()) {
-                write("");
+            for (Long channelID : channelsIDs) {
+                parserService.loadChannelsHistory(channelID, dateFromUnix, dateToUnix);
             }
+            Notifier.getInstance().addNotification("Загрузка окончена");
         });
         createPreset(userChoiceInput, dateFromString, dateToString);
     }
@@ -109,7 +101,7 @@ public class ServiceManager implements InteractionStarter, ErrorInformer {
     private Set<Long> parseUserChoice(String input) {
         Set<Long> result = new TreeSet<>();
         Stream.of(input.split(","))
-                .map(ParserUtil::parseLongOrGetZero)
+                .map(NumberUtils::parseLongOrGetZero)
                 .forEach(n -> {
                     if (n < 0) {
                         result.add(n);
@@ -134,7 +126,7 @@ public class ServiceManager implements InteractionStarter, ErrorInformer {
     }
 
     public void setMessagesToDownload(String value) {
-        parserService.setMessagesToDownload(ParserUtil.parseIntegerOrGetZero(value));
+        parserService.setMessagesToDownload(NumberUtils.parseIntegerOrGetZero(value));
     }
 
     public void write(String value) {
@@ -203,10 +195,9 @@ public class ServiceManager implements InteractionStarter, ErrorInformer {
     }
 
     private void createPreset(String source, String dateFromString, String dateToString) {
-        String name = "Последний запрос";
-        LocalDate start = ParserUtil.parseStringToLocalDateOrGetNull(dateFromString);
-        LocalDate end = ParserUtil.parseStringToLocalDateOrGetNull(dateToString);
-        presetService.createPreset(name, source, start, end);
+        LocalDate start = DateTimeUtils.parseStringToLocalDateOrGetNull(dateFromString);
+        LocalDate end = DateTimeUtils.parseStringToLocalDateOrGetNull(dateToString);
+        presetService.createPreset(source, start, end);
     }
 
     public void usePresetByName(String name) {
@@ -215,24 +206,11 @@ public class ServiceManager implements InteractionStarter, ErrorInformer {
             Notifier.getInstance().addNotification("Нет такого запроса");
             return;
         }
-        loadAnalyzeWrite(preset.getSource(), calculateDate(preset.getStart()), calculateDate(preset.getEnd()));
+        load(preset.getSource(), DateTimeUtils.calculateDate(preset.getStart()), DateTimeUtils.calculateDate(preset.getEnd()));
     }
 
     public void renamePresetByName(String oldName, String newName) {
-        Preset presetWithOldName = presetService.getPresetByName(oldName.trim());
-        if (presetWithOldName == null) {
-            Notifier.getInstance().addNotification("Нет такого запроса");
-            return;
-        }
-        presetService.getAllPresets().put(
-                newName.replaceAll("~", ""),
-                new Preset(
-                        newName,
-                        presetWithOldName.getSource(),
-                        presetWithOldName.getStart(),
-                        presetWithOldName.getEnd()));
-        presetService.removePresetByName(oldName);
-        Notifier.getInstance().addNotification("Новое название сохранено");
+        presetService.renamePreset(oldName, newName);
     }
 
     public void removePresetByName(String name) {
@@ -245,8 +223,8 @@ public class ServiceManager implements InteractionStarter, ErrorInformer {
             String name = preset.getName();
             Set<String> folders = extractFoldersNames(preset.getSource());
             Set<String> channels = extractChannelsNames(preset.getSource());
-            String start = calculateDate(preset.getStart());
-            String end = calculateDate(preset.getEnd());
+            String start = DateTimeUtils.calculateDate(preset.getStart());
+            String end = DateTimeUtils.calculateDate(preset.getEnd());
             presetDTOList.add(new PresetDTO(name, folders, channels, start, end));
         }
         return presetDTOList;
@@ -254,25 +232,21 @@ public class ServiceManager implements InteractionStarter, ErrorInformer {
 
     private Set<String> extractFoldersNames(String source) {
         return Stream.of(source.split(","))
-                .map(ParserUtil::parseLongOrGetZero)
+                .map(NumberUtils::parseLongOrGetZero)
                 .filter(n -> n > 0)
                 .map(Long::intValue)
                 .map(getFoldersIDsAndNames()::get)
+                .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
     }
 
     private Set<String> extractChannelsNames(String source) {
         return Stream.of(source.split(","))
-                .map(ParserUtil::parseLongOrGetZero)
+                .map(NumberUtils::parseLongOrGetZero)
                 .filter(n -> n < 0)
                 .map(getChannelsIDsAndNames()::get)
+                .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
-    }
-
-    private String calculateDate(Integer dateDiff) {
-        if (dateDiff == null) return "";
-        LocalDate now = LocalDate.now();
-        return now.minusDays(dateDiff).format(DateTimeFormatter.ofPattern("dd.MM.yyyy"));
     }
 
     @Override
@@ -285,6 +259,5 @@ public class ServiceManager implements InteractionStarter, ErrorInformer {
         view.stopNotificationListener();
         clientFactory.close();
         executor.shutdown();
-        System.exit(0);
     }
 }

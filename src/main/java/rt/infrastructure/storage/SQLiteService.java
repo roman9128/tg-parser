@@ -6,6 +6,7 @@ import rt.model.entity.Entity;
 import rt.model.note.Note;
 import rt.model.service.NoteStorageService;
 
+import java.util.Arrays;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -118,5 +119,12 @@ public class SQLiteService implements NoteStorageService {
     @Override
     public void removeCopies() {
 
+    }
+
+    private String[] removeDuplicates(String[] array) {
+        return Arrays.stream(array)
+                .map(String::toLowerCase)
+                .distinct()
+                .toArray(String[]::new);
     }
 }
